@@ -1,10 +1,12 @@
-import { fetchApi } from '@/utils/http'
+import { fetchApi, fetchApiWithFile } from '@/utils/http'
 import {
   CreateDepartmentType,
   CreateDesignationType,
+  CreateEmployeeType,
   CreateEmployeeTypeType,
   GetDepartmentType,
   GetDesignationType,
+  GetEmployeeType,
   GetEmployeeTypeType,
   SignInRequest,
   SignInResponse,
@@ -174,6 +176,69 @@ export async function editEmployeeType(
 export async function deleteEmployeeType(id: number, token: string) {
   return fetchApi<{ id: number }>({
     url: `api/employeeTypes/delete/${id}`,
+    method: 'DELETE',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+//employee
+export async function getAllEmployees(token: string) {
+  return fetchApi<GetEmployeeType[]>({
+    url: 'api/employees/getall',
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function getEmployeeById(token: string, id: number) {
+  return fetchApi<GetEmployeeType>({
+    url: `api/employees/getById/${id}`,
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function createEmployee(
+  formData: FormData,
+  token: string
+) {
+  return fetchApiWithFile<CreateEmployeeType>({
+    url: 'api/employees/create',
+    method: 'POST',
+    body: formData,
+    headers: {
+      Authorization: token,
+    },
+  })
+}
+
+export async function editEmployee(
+  id: number,
+  formData: FormData,
+  token: string
+) {
+  return fetchApiWithFile<GetEmployeeType>({
+    url: `api/employees/edit/${id}`,
+    method: 'PATCH',
+    body: formData,
+    headers: {
+      Authorization: `${token}`,
+    },
+  })
+}
+
+export async function deleteEmployee(id: number, token: string) {
+  return fetchApi<{ id: number }>({
+    url: `api/employees/delete/${id}`,
     method: 'DELETE',
     headers: {
       Authorization: token,

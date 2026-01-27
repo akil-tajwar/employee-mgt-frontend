@@ -5,16 +5,21 @@ import { toast } from './use-toast'
 import {
   createDepartment,
   createDesignation,
+  createEmployee,
   createEmployeeType,
   deleteDepartment,
   deleteDesignation,
+  deleteEmployee,
   deleteEmployeeType,
   editDepartment,
   editDesignation,
+  editEmployee,
   editEmployeeType,
   getAllDepartments,
   getAllDesignations,
+  getAllEmployees,
   getAllEmployeeTypes,
+  getEmployeeById,
 } from '@/utils/api'
 import { CreateDepartmentType, CreateDesignationType, CreateEmployeeTypeType } from '@/utils/type'
 
@@ -366,6 +371,138 @@ export const useDeleteEmployeeType = ({
         description: 'employee type is deleted successfully.',
       })
       queryClient.invalidateQueries({ queryKey: ['employeeTypes'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error sending delete request:', error)
+    },
+  })
+
+  return mutation
+}
+
+//employee
+export const useAddEmployee = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (formData: FormData) => {
+      return createEmployee(formData, token)
+    },
+    onSuccess: (data) => {
+      console.log('employees added successfully:', data)
+
+      queryClient.invalidateQueries({ queryKey: ['employees'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error adding employees:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useGetAllEmployees = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['employees'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getAllEmployees(token)
+    },
+    enabled: !!token,
+    select: (data) => data,
+  })
+}
+
+export const useGetEmployeeById = (id: number) => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['employees', id],
+    queryFn: () => {
+      if (!token) throw new Error('Token not found')
+      return getEmployeeById(token, id)
+    },
+    enabled: !!token && id > 0,
+    select: (data) => data,
+  })
+}
+
+export const useUpdateEmployeeWithFees = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: FormData }) => {
+      // 🔥 data is already FormData — use it directly
+      return editEmployee(id, data, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'Employee edited successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['employees'] })
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error editing employee:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useDeleteEmployee = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id }: { id: number }) => {
+      return deleteEmployee(id, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'employee is deleted successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['employees'] })
 
       reset()
       onClose()
