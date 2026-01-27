@@ -75,5 +75,5 @@ export const employeeTypeSchema = z.object({
   updatedBy: z.number().nullable().optional(),
   updatedAt: z.date().optional(),
 })
-export type CreateEmployeeType = z.infer<typeof employeeTypeSchema>
-export type GetEmployeeType = z.infer<typeof employeeTypeSchema>
+export type CreateEmployeeTypeType = z.infer<typeof employeeTypeSchema>
+export type GetEmployeeTypeType = z.infer<typeof employeeTypeSchema>

@@ -2,8 +2,10 @@ import { fetchApi } from '@/utils/http'
 import {
   CreateDepartmentType,
   CreateDesignationType,
+  CreateEmployeeTypeType,
   GetDepartmentType,
   GetDesignationType,
+  GetEmployeeTypeType,
   SignInRequest,
   SignInResponse,
   SignInResponseSchema,
@@ -118,6 +120,60 @@ export async function editDesignation(
 export async function deleteDesignation(id: number, token: string) {
   return fetchApi<{ id: number }>({
     url: `api/designations/delete/${id}`,
+    method: 'DELETE',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+//employee type
+export async function getAllEmployeeTypes(token: string) {
+  return fetchApi<GetEmployeeTypeType[]>({
+    url: 'api/employeeTypes/getall',
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function createEmployeeType(
+  data: CreateEmployeeTypeType,
+  token: string
+) {
+  return fetchApi<CreateEmployeeTypeType>({
+    url: 'api/employeeTypes/create',
+    method: 'POST',
+    body: data,
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function editEmployeeType(
+  id: number,
+  data: GetEmployeeTypeType,
+  token: string
+) {
+  return fetchApi<GetEmployeeTypeType>({
+    url: `api/employeeTypes/edit/${id}`,
+    method: 'PATCH',
+    body: data,
+    headers: {
+      Authorization: `${token}`,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function deleteEmployeeType(id: number, token: string) {
+  return fetchApi<{ id: number }>({
+    url: `api/employeeTypes/delete/${id}`,
     method: 'DELETE',
     headers: {
       Authorization: token,
