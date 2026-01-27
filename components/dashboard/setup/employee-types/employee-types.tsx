@@ -23,14 +23,14 @@ import {
 } from '@/components/ui/pagination'
 import { ArrowUpDown, Search, BookOpen, Edit2, Trash2 } from 'lucide-react'
 import { Popup } from '@/utils/popup'
-import type { CreateDepartmentType, GetDepartmentType } from '@/utils/type'
+import type { CreateEmployeeTypeType, GetEmployeeTypeType } from '@/utils/type'
 import { useInitializeUser, userDataAtom } from '@/utils/user'
 import { useAtom } from 'jotai'
 import {
-  useAddDepartment,
-  useDeleteDepartment,
-  useGetDepartments,
-  useUpdateDepartment,
+  useAddEmployeeType,
+  useDeleteEmployeeType,
+  useGetEmployeeTypes,
+  useUpdateEmployeeType,
 } from '@/hooks/use-api'
 import {
   AlertDialog,
@@ -42,34 +42,34 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-const Departments = () => {
+const EmployeeTypes = () => {
   useInitializeUser()
   const [userData] = useAtom(userDataAtom)
 
-  const { data: departments } = useGetDepartments()
-  console.log('🚀 ~ Departments ~ departments:', departments)
+  const { data: employeeTypes } = useGetEmployeeTypes()
+  console.log('🚀 ~ EmployeeTypes ~ employeeTypes:', employeeTypes)
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [departmentsPerPage] = useState(10)
+  const [employeeTypesPerPage] = useState(10)
   const [sortColumn, setSortColumn] =
-    useState<keyof GetDepartmentType>('departmentName')
+    useState<keyof GetEmployeeTypeType>('employeeTypeName')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [searchTerm, setSearchTerm] = useState('')
 
   const [isPopupOpen, setIsPopupOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
-  const [editingDepartmentId, setEditingDepartmentId] = useState<number | null>(
-    null
-  )
-
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [deletingDepartmentId, setDeletingDepartmentId] = useState<
+  const [editingEmployeeTypeId, setEditingEmployeeTypeId] = useState<
     number | null
   >(null)
 
-  const [formData, setFormData] = useState<CreateDepartmentType>({
-    departmentName: '',
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deletingEmployeeTypeId, setDeletingEmployeeTypeId] = useState<
+    number | null
+  >(null)
+
+  const [formData, setFormData] = useState<CreateEmployeeTypeType>({
+    employeeTypeName: '',
     createdBy: userData?.userId || 0,
   })
 
@@ -85,10 +85,10 @@ const Departments = () => {
 
   const resetForm = useCallback(() => {
     setFormData({
-      departmentName: '',
+      employeeTypeName: '',
       createdBy: userData?.userId || 0,
     })
-    setEditingDepartmentId(null)
+    setEditingEmployeeTypeId(null)
     setIsEditMode(false)
     setIsPopupOpen(false)
     setError(null)
@@ -100,22 +100,22 @@ const Departments = () => {
     resetForm()
   }, [resetForm])
 
-  const addMutation = useAddDepartment({
+  const addMutation = useAddEmployeeType({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const updateMutation = useUpdateDepartment({
+  const updateMutation = useUpdateEmployeeType({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const deleteMutation = useDeleteDepartment({
+  const deleteMutation = useDeleteEmployeeType({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const handleSort = (column: keyof GetDepartmentType) => {
+  const handleSort = (column: keyof GetEmployeeTypeType) => {
     if (column === sortColumn) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
@@ -124,29 +124,34 @@ const Departments = () => {
     }
   }
 
-  const filteredDepartments = useMemo(() => {
-    if (!departments?.data) return []
-    return departments.data?.filter((dept) =>
-      dept.departmentName?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEmployeeTypes = useMemo(() => {
+    if (!employeeTypes?.data) return []
+    return employeeTypes.data?.filter((dept) =>
+      dept.employeeTypeName?.toLowerCase().includes(searchTerm.toLowerCase())
     )
-  }, [departments?.data, searchTerm])
+  }, [employeeTypes?.data, searchTerm])
 
-  const sortedDepartments = useMemo(() => {
-    return [...filteredDepartments].sort((a, b) => {
-      const aValue = a.departmentName ?? ''
-      const bValue = b.departmentName ?? ''
+  const sortedEmployeeTypes = useMemo(() => {
+    return [...filteredEmployeeTypes].sort((a, b) => {
+      const aValue = a.employeeTypeName ?? ''
+      const bValue = b.employeeTypeName ?? ''
       return sortDirection === 'asc'
         ? aValue.localeCompare(bValue)
         : bValue.localeCompare(aValue)
     })
-  }, [filteredDepartments, sortDirection])
+  }, [filteredEmployeeTypes, sortDirection])
 
-  const paginatedDepartments = useMemo(() => {
-    const startIndex = (currentPage - 1) * departmentsPerPage
-    return sortedDepartments.slice(startIndex, startIndex + departmentsPerPage)
-  }, [sortedDepartments, currentPage, departmentsPerPage])
+  const paginatedEmployeeTypes = useMemo(() => {
+    const startIndex = (currentPage - 1) * employeeTypesPerPage
+    return sortedEmployeeTypes.slice(
+      startIndex,
+      startIndex + employeeTypesPerPage
+    )
+  }, [sortedEmployeeTypes, currentPage, employeeTypesPerPage])
 
-  const totalPages = Math.ceil(sortedDepartments.length / departmentsPerPage)
+  const totalPages = Math.ceil(
+    sortedEmployeeTypes.length / employeeTypesPerPage
+  )
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -155,8 +160,8 @@ const Departments = () => {
       setError(null)
 
       try {
-        const submitData: CreateDepartmentType = {
-          departmentName: formData.departmentName,
+        const submitData: CreateEmployeeTypeType = {
+          employeeTypeName: formData.employeeTypeName,
         }
 
         if (isEditMode) {
@@ -165,25 +170,25 @@ const Departments = () => {
           submitData.createdBy = userData?.userId || 0
         }
 
-        if (isEditMode && editingDepartmentId) {
+        if (isEditMode && editingEmployeeTypeId) {
           updateMutation.mutate({
-            id: editingDepartmentId,
+            id: editingEmployeeTypeId,
             data: submitData,
           })
-          console.log('update', isEditMode, editingDepartmentId)
+          console.log('update', isEditMode, editingEmployeeTypeId)
         } else {
           addMutation.mutate(submitData)
           console.log('create')
         }
       } catch (err) {
-        setError('Failed to save department')
+        setError('Failed to save employeeType')
         console.error(err)
       }
     },
     [
       formData,
       isEditMode,
-      editingDepartmentId,
+      editingEmployeeTypeId,
       addMutation,
       updateMutation,
       userData,
@@ -192,16 +197,16 @@ const Departments = () => {
 
   useEffect(() => {
     if (addMutation.error || updateMutation.error) {
-      setError('Error saving department')
+      setError('Error saving employeeType')
     }
   }, [addMutation.error, updateMutation.error])
 
   const handleEditClick = (dept: any) => {
     setFormData({
-      departmentName: dept.departmentName,
+      employeeTypeName: dept.employeeTypeName,
       createdBy: userData?.userId || 0,
     })
-    setEditingDepartmentId(dept.departmentId)
+    setEditingEmployeeTypeId(dept.employeeTypeId)
     setIsEditMode(true)
     setIsPopupOpen(true)
   }
@@ -213,13 +218,13 @@ const Departments = () => {
           <div className="bg-amber-100 p-2 rounded-md">
             <BookOpen className="text-amber-600" />
           </div>
-          <h2 className="text-lg font-semibold">Departments</h2>
+          <h2 className="text-lg font-semibold">Employee Types</h2>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Search departments..."
+              placeholder="Search employeeTypes..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-64"
@@ -240,39 +245,40 @@ const Departments = () => {
             <TableRow>
               <TableHead>Sl No.</TableHead>
               <TableHead
-                onClick={() => handleSort('departmentName')}
+                onClick={() => handleSort('employeeTypeName')}
                 className="cursor-pointer"
               >
-                Department Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Employee Type Name
+                <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!departments || departments.data === undefined ? (
+            {!employeeTypes || employeeTypes.data === undefined ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-4">
-                  Loading departments...
+                  Loading employee types...
                 </TableCell>
               </TableRow>
-            ) : !departments.data || departments.data.length === 0 ? (
+            ) : !employeeTypes.data || employeeTypes.data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-4">
-                  No departments found
+                  No employee types found
                 </TableCell>
               </TableRow>
-            ) : paginatedDepartments.length === 0 ? (
+            ) : paginatedEmployeeTypes.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-4">
-                  No departments match your search
+                  No employee types match your search
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedDepartments.map((dept: any, index) => (
+              paginatedEmployeeTypes.map((dept: any, index) => (
                 <TableRow key={index}>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell className="font-medium">
-                    {dept.departmentName}
+                    {dept.employeeTypeName}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -289,7 +295,7 @@ const Departments = () => {
                         size="sm"
                         className="text-red-600 hover:text-red-700"
                         onClick={() => {
-                          setDeletingDepartmentId(dept.departmentId)
+                          setDeletingEmployeeTypeId(dept.employeeTypeId)
                           setIsDeleteDialogOpen(true)
                         }}
                       >
@@ -304,7 +310,7 @@ const Departments = () => {
         </Table>
       </div>
 
-      {sortedDepartments.length > 0 && (
+      {sortedEmployeeTypes.length > 0 && (
         <div className="mt-4">
           <Pagination>
             <PaginationContent>
@@ -369,19 +375,19 @@ const Departments = () => {
       <Popup
         isOpen={isPopupOpen}
         onClose={closePopup}
-        title={isEditMode ? 'Edit Department' : 'Add Department'}
+        title={isEditMode ? 'Edit EmployeeType' : 'Add EmployeeType'}
         size="sm:max-w-md"
       >
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="departmentName">
-                Department Name <span className="text-red-500">*</span>
+              <Label htmlFor="employeeTypeName">
+                EmployeeType Name <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="departmentName"
-                name="departmentName"
-                value={formData.departmentName}
+                id="employeeTypeName"
+                name="employeeTypeName"
+                value={formData.employeeTypeName}
                 onChange={handleInputChange}
                 required
               />
@@ -416,9 +422,9 @@ const Departments = () => {
       >
         <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Department</AlertDialogTitle>
+            <AlertDialogTitle>Delete EmployeeType</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this department? This action
+              Are you sure you want to delete this employeeType? This action
               cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -428,8 +434,8 @@ const Departments = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (deletingDepartmentId) {
-                  deleteMutation.mutate({ id: deletingDepartmentId })
+                if (deletingEmployeeTypeId) {
+                  deleteMutation.mutate({ id: deletingEmployeeTypeId })
                 }
                 setIsDeleteDialogOpen(false)
               }}
@@ -444,4 +450,4 @@ const Departments = () => {
   )
 }
 
-export default Departments
+export default EmployeeTypes

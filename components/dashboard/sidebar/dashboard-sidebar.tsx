@@ -62,49 +62,13 @@ export function DashboardSidebar() {
       ],
     },
     {
-      title: 'Trade Management',
+      title: 'Employee Management',
       icon: BriefcaseBusiness,
-      href: '/dashboard/trade-management',
+      href: '/dashboard/employee-management',
       subItems: [
         {
-          title: 'Purchases',
-          href: '/dashboard/trade-management/purchases',
-        },
-        {
-          title: 'Sorting',
-          href: '/dashboard/trade-management/sorting',
-        },
-        {
-          title: 'Stock Adjustment',
-          href: '/dashboard/trade-management/stock-adjustments',
-        },
-        {
-          title: 'Sales',
-          href: '/dashboard/trade-management/sales',
-        },
-        {
-          title: 'Expenses',
-          href: '/dashboard/trade-management/expenses',
-        },
-        {
-          title: 'Transactions',
-          href: '/dashboard/trade-management/transactions',
-        },
-        {
-          title: 'Bank Transactions',
-          href: '/dashboard/trade-management/bank-transactions',
-        },
-        {
-          title: 'Loans',
-          href: '/dashboard/trade-management/loans',
-        },
-        {
-          title: 'Opening Balance',
-          href: '/dashboard/trade-management/opening-balance',
-        },
-        {
-          title: 'Wastages',
-          href: '/dashboard/trade-management/wastages',
+          title: 'Create Employee',
+          href: '/dashboard/employee-management/create-employee',
         },
       ],
     },
