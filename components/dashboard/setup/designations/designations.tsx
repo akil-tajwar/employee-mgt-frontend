@@ -23,14 +23,14 @@ import {
 } from '@/components/ui/pagination'
 import { ArrowUpDown, Search, BookOpen, Edit2, Trash2 } from 'lucide-react'
 import { Popup } from '@/utils/popup'
-import type { CreateDepartmentType, GetDepartmentType } from '@/utils/type'
+import type { CreateDesignationType, GetDesignationType } from '@/utils/type'
 import { useInitializeUser, userDataAtom } from '@/utils/user'
 import { useAtom } from 'jotai'
 import {
-  useAddDepartment,
-  useDeleteDepartment,
-  useGetDepartments,
-  useUpdateDepartment,
+  useAddDesignation,
+  useDeleteDesignation,
+  useGetDesignations,
+  useUpdateDesignation,
 } from '@/hooks/use-api'
 import {
   AlertDialog,
@@ -42,34 +42,34 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-const Departments = () => {
+const Designations = () => {
   useInitializeUser()
   const [userData] = useAtom(userDataAtom)
 
-  const { data: departments } = useGetDepartments()
-  console.log('🚀 ~ Departments ~ departments:', departments)
+  const { data: designations } = useGetDesignations()
+  console.log('🚀 ~ Designations ~ designations:', designations)
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [departmentsPerPage] = useState(10)
+  const [designationsPerPage] = useState(10)
   const [sortColumn, setSortColumn] =
-    useState<keyof GetDepartmentType>('departmentName')
+    useState<keyof GetDesignationType>('designationName')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [searchTerm, setSearchTerm] = useState('')
 
   const [isPopupOpen, setIsPopupOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
-  const [editingDepartmentId, setEditingDepartmentId] = useState<number | null>(
+  const [editingDesignationId, setEditingDesignationId] = useState<number | null>(
     null
   )
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [deletingDepartmentId, setDeletingDepartmentId] = useState<
+  const [deletingDesignationId, setDeletingDesignationId] = useState<
     number | null
   >(null)
 
-  const [formData, setFormData] = useState<CreateDepartmentType>({
-    departmentName: '',
+  const [formData, setFormData] = useState<CreateDesignationType>({
+    designationName: '',
     createdBy: userData?.userId || 0,
   })
 
@@ -85,10 +85,10 @@ const Departments = () => {
 
   const resetForm = useCallback(() => {
     setFormData({
-      departmentName: '',
+      designationName: '',
       createdBy: userData?.userId || 0,
     })
-    setEditingDepartmentId(null)
+    setEditingDesignationId(null)
     setIsEditMode(false)
     setIsPopupOpen(false)
     setError(null)
@@ -100,22 +100,22 @@ const Departments = () => {
     resetForm()
   }, [resetForm])
 
-  const addMutation = useAddDepartment({
+  const addMutation = useAddDesignation({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const updateMutation = useUpdateDepartment({
+  const updateMutation = useUpdateDesignation({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const deleteMutation = useDeleteDepartment({
+  const deleteMutation = useDeleteDesignation({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const handleSort = (column: keyof GetDepartmentType) => {
+  const handleSort = (column: keyof GetDesignationType) => {
     if (column === sortColumn) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
@@ -124,29 +124,29 @@ const Departments = () => {
     }
   }
 
-  const filteredDepartments = useMemo(() => {
-    if (!departments?.data) return []
-    return departments.data?.filter((dept) =>
-      dept.departmentName?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredDesignations = useMemo(() => {
+    if (!designations?.data) return []
+    return designations.data?.filter((dept) =>
+      dept.designationName?.toLowerCase().includes(searchTerm.toLowerCase())
     )
-  }, [departments?.data, searchTerm])
+  }, [designations?.data, searchTerm])
 
-  const sortedDepartments = useMemo(() => {
-    return [...filteredDepartments].sort((a, b) => {
-      const aValue = a.departmentName ?? ''
-      const bValue = b.departmentName ?? ''
+  const sortedDesignations = useMemo(() => {
+    return [...filteredDesignations].sort((a, b) => {
+      const aValue = a.designationName ?? ''
+      const bValue = b.designationName ?? ''
       return sortDirection === 'asc'
         ? aValue.localeCompare(bValue)
         : bValue.localeCompare(aValue)
     })
-  }, [filteredDepartments, sortDirection])
+  }, [filteredDesignations, sortDirection])
 
-  const paginatedDepartments = useMemo(() => {
-    const startIndex = (currentPage - 1) * departmentsPerPage
-    return sortedDepartments.slice(startIndex, startIndex + departmentsPerPage)
-  }, [sortedDepartments, currentPage, departmentsPerPage])
+  const paginatedDesignations = useMemo(() => {
+    const startIndex = (currentPage - 1) * designationsPerPage
+    return sortedDesignations.slice(startIndex, startIndex + designationsPerPage)
+  }, [sortedDesignations, currentPage, designationsPerPage])
 
-  const totalPages = Math.ceil(sortedDepartments.length / departmentsPerPage)
+  const totalPages = Math.ceil(sortedDesignations.length / designationsPerPage)
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -155,8 +155,8 @@ const Departments = () => {
       setError(null)
 
       try {
-        const submitData: CreateDepartmentType = {
-          departmentName: formData.departmentName,
+        const submitData: CreateDesignationType = {
+          designationName: formData.designationName,
         }
 
         if (isEditMode) {
@@ -165,25 +165,25 @@ const Departments = () => {
           submitData.createdBy = userData?.userId || 0
         }
 
-        if (isEditMode && editingDepartmentId) {
+        if (isEditMode && editingDesignationId) {
           updateMutation.mutate({
-            id: editingDepartmentId,
+            id: editingDesignationId,
             data: submitData,
           })
-          console.log('update', isEditMode, editingDepartmentId)
+          console.log('update', isEditMode, editingDesignationId)
         } else {
           addMutation.mutate(submitData)
           console.log('create')
         }
       } catch (err) {
-        setError('Failed to save department')
+        setError('Failed to save designation')
         console.error(err)
       }
     },
     [
       formData,
       isEditMode,
-      editingDepartmentId,
+      editingDesignationId,
       addMutation,
       updateMutation,
       userData,
@@ -192,16 +192,16 @@ const Departments = () => {
 
   useEffect(() => {
     if (addMutation.error || updateMutation.error) {
-      setError('Error saving department')
+      setError('Error saving designation')
     }
   }, [addMutation.error, updateMutation.error])
 
   const handleEditClick = (dept: any) => {
     setFormData({
-      departmentName: dept.departmentName,
+      designationName: dept.designationName,
       createdBy: userData?.userId || 0,
     })
-    setEditingDepartmentId(dept.departmentId)
+    setEditingDesignationId(dept.designationId)
     setIsEditMode(true)
     setIsPopupOpen(true)
   }
@@ -213,13 +213,13 @@ const Departments = () => {
           <div className="bg-amber-100 p-2 rounded-md">
             <BookOpen className="text-amber-600" />
           </div>
-          <h2 className="text-lg font-semibold">Departments</h2>
+          <h2 className="text-lg font-semibold">Designations</h2>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Search departments..."
+              placeholder="Search designations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-64"
@@ -240,39 +240,39 @@ const Departments = () => {
             <TableRow>
               <TableHead>Sl No.</TableHead>
               <TableHead
-                onClick={() => handleSort('departmentName')}
+                onClick={() => handleSort('designationName')}
                 className="cursor-pointer"
               >
-                Department Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Designation Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!departments || departments.data === undefined ? (
+            {!designations || designations.data === undefined ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-4">
-                  Loading departments...
+                  Loading designations...
                 </TableCell>
               </TableRow>
-            ) : !departments.data || departments.data.length === 0 ? (
+            ) : !designations.data || designations.data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-4">
-                  No departments found
+                  No designations found
                 </TableCell>
               </TableRow>
-            ) : paginatedDepartments.length === 0 ? (
+            ) : paginatedDesignations.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-4">
-                  No departments match your search
+                  No designations match your search
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedDepartments.map((dept: any, index) => (
+              paginatedDesignations.map((dept: any, index) => (
                 <TableRow key={index}>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell className="font-medium">
-                    {dept.departmentName}
+                    {dept.designationName}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -289,7 +289,7 @@ const Departments = () => {
                         size="sm"
                         className="text-red-600 hover:text-red-700"
                         onClick={() => {
-                          setDeletingDepartmentId(dept.departmentId)
+                          setDeletingDesignationId(dept.designationId)
                           setIsDeleteDialogOpen(true)
                         }}
                       >
@@ -304,7 +304,7 @@ const Departments = () => {
         </Table>
       </div>
 
-      {sortedDepartments.length > 0 && (
+      {sortedDesignations.length > 0 && (
         <div className="mt-4">
           <Pagination>
             <PaginationContent>
@@ -369,19 +369,19 @@ const Departments = () => {
       <Popup
         isOpen={isPopupOpen}
         onClose={closePopup}
-        title={isEditMode ? 'Edit Department' : 'Add Department'}
+        title={isEditMode ? 'Edit Designation' : 'Add Designation'}
         size="sm:max-w-md"
       >
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="departmentName">
-                Department Name <span className="text-red-500">*</span>
+              <Label htmlFor="designationName">
+                Designation Name <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="departmentName"
-                name="departmentName"
-                value={formData.departmentName}
+                id="designationName"
+                name="designationName"
+                value={formData.designationName}
                 onChange={handleInputChange}
                 required
               />
@@ -416,9 +416,9 @@ const Departments = () => {
       >
         <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Department</AlertDialogTitle>
+            <AlertDialogTitle>Delete Designation</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this department? This action
+              Are you sure you want to delete this designation? This action
               cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -428,8 +428,8 @@ const Departments = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (deletingDepartmentId) {
-                  deleteMutation.mutate({ id: deletingDepartmentId })
+                if (deletingDesignationId) {
+                  deleteMutation.mutate({ id: deletingDesignationId })
                 }
                 setIsDeleteDialogOpen(false)
               }}
@@ -444,4 +444,4 @@ const Departments = () => {
   )
 }
 
-export default Departments
+export default Designations

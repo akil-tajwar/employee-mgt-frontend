@@ -4,11 +4,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from './use-toast'
 import {
   createDepartment,
+  createDesignation,
   deleteDepartment,
+  deleteDesignation,
   editDepartment,
+  editDesignation,
   getAllDepartments,
+  getAllDesignations,
 } from '@/utils/api'
-import { CreateDepartmentType } from '@/utils/type'
+import { CreateDepartmentType, CreateDesignationType } from '@/utils/type'
 
 //departments
 export const useGetDepartments = () => {
@@ -118,6 +122,126 @@ export const useDeleteDepartment = ({
         description: 'department is deleted successfully.',
       })
       queryClient.invalidateQueries({ queryKey: ['departments'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error sending delete request:', error)
+    },
+  })
+
+  return mutation
+}
+
+//designation
+export const useGetDesignations = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['designations'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getAllDesignations(token)
+    },
+    enabled: !!token,
+    select: (data) => data,
+  })
+}
+
+export const useAddDesignation = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (data: CreateDesignationType) => {
+      return createDesignation(data, token)
+    },
+    onSuccess: (data) => {
+      console.log('designation added successfully:', data)
+      queryClient.invalidateQueries({ queryKey: ['designations'] })
+
+      // Reset form fields after success
+      reset()
+
+      // Close the form modal
+      onClose()
+    },
+    onError: (error) => {
+      // Handle error
+      console.error('Error adding designation:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useUpdateDesignation = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: CreateDesignationType }) => {
+      return editDesignation(id, data, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'designation edited successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['designations'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error editing designation:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useDeleteDesignation = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id }: { id: number }) => {
+      return deleteDesignation(id, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'designation is deleted successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['designations'] })
 
       reset()
       onClose()

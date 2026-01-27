@@ -1,7 +1,9 @@
 import { fetchApi } from '@/utils/http'
 import {
   CreateDepartmentType,
+  CreateDesignationType,
   GetDepartmentType,
+  GetDesignationType,
   SignInRequest,
   SignInResponse,
   SignInResponseSchema,
@@ -62,6 +64,60 @@ export async function editDepartment(
 export async function deleteDepartment(id: number, token: string) {
   return fetchApi<{ id: number }>({
     url: `api/departments/delete/${id}`,
+    method: 'DELETE',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+//designation
+export async function getAllDesignations(token: string) {
+  return fetchApi<GetDesignationType[]>({
+    url: 'api/designations/getall',
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function createDesignation(
+  data: CreateDesignationType,
+  token: string
+) {
+  return fetchApi<CreateDesignationType>({
+    url: 'api/designations/create',
+    method: 'POST',
+    body: data,
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function editDesignation(
+  id: number,
+  data: GetDesignationType,
+  token: string
+) {
+  return fetchApi<GetDesignationType>({
+    url: `api/designations/edit/${id}`,
+    method: 'PATCH',
+    body: data,
+    headers: {
+      Authorization: `${token}`,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function deleteDesignation(id: number, token: string) {
+  return fetchApi<{ id: number }>({
+    url: `api/designations/delete/${id}`,
     method: 'DELETE',
     headers: {
       Authorization: token,
