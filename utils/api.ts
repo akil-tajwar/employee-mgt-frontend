@@ -8,6 +8,7 @@ import {
   GetDesignationType,
   GetEmployeeType,
   GetEmployeeTypeType,
+  GetWeekendType,
   SignInRequest,
   SignInResponse,
   SignInResponseSchema,
@@ -177,6 +178,18 @@ export async function deleteEmployeeType(id: number, token: string) {
   return fetchApi<{ id: number }>({
     url: `api/employeeTypes/delete/${id}`,
     method: 'DELETE',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+//weekends
+export async function getAllWeekends(token: string) {
+  return fetchApi<GetWeekendType[]>({
+    url: 'api/weekends/getall',
+    method: 'GET',
     headers: {
       Authorization: token,
       'Content-Type': 'application/json',

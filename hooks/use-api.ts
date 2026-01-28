@@ -19,6 +19,7 @@ import {
   getAllDesignations,
   getAllEmployees,
   getAllEmployeeTypes,
+  getAllWeekends,
   getEmployeeById,
 } from '@/utils/api'
 import { CreateDepartmentType, CreateDesignationType, CreateEmployeeTypeType } from '@/utils/type'
@@ -381,6 +382,24 @@ export const useDeleteEmployeeType = ({
   })
 
   return mutation
+}
+
+//weekend
+export const useGetWeekends = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['weekends'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getAllWeekends(token)
+    },
+    enabled: !!token,
+    select: (data) => data,
+  })
 }
 
 //employee

@@ -80,7 +80,7 @@ export type GetEmployeeTypeType = z.infer<typeof employeeTypeSchema>
 
 //employee
 export const employeeSchema = z.object({
-  employeeId: z.number(),
+  employeeId: z.number().optional(),
   fullName: z.string().min(1, 'Full name is required'),
   email: z.string().email('Invalid email'),
   officialPhone: z.string().min(1, 'Official phone is required'),
@@ -90,6 +90,7 @@ export const employeeSchema = z.object({
   emergencyContactName: z.string().optional().nullable(),
   emergencyContactPhone: z.string().optional().nullable(),
   photoUrl: z.string().url().optional().nullable(),
+  cvUrl: z.string().url().optional().nullable(),
   dob: z.string().min(1, 'Date of birth is required'),
   doj: z.string().min(1, 'Date of joining is required'),
   gender: z.enum(['Male', 'Female']),
@@ -111,3 +112,9 @@ export const employeeSchema = z.object({
 })
 export type CreateEmployeeType = z.infer<typeof employeeSchema>
 export type GetEmployeeType = z.infer<typeof employeeSchema>
+
+export const weekendSchema = z.object({
+  weekendId: z.number().optional(),
+  day: z.string(),
+})
+export type GetWeekendType = z.infer<typeof weekendSchema>
