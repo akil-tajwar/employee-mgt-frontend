@@ -59,6 +59,14 @@ export function DashboardSidebar() {
           title: 'Employee Types',
           href: '/dashboard/setup/employee-types',
         },
+        {
+          title: 'Holidays',
+          href: '/dashboard/setup/holidays',
+        },
+        {
+          title: 'Leave Types',
+          href: '/dashboard/setup/leaveTypes',
+        },
       ],
     },
     {

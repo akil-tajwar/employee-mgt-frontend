@@ -23,14 +23,14 @@ import {
 } from '@/components/ui/pagination'
 import { ArrowUpDown, Search, BookOpen, Edit2, Trash2 } from 'lucide-react'
 import { Popup } from '@/utils/popup'
-import type { CreateDesignationType, GetDesignationType } from '@/utils/type'
+import type { CreateLeaveTypeType, GetLeaveTypeType } from '@/utils/type'
 import { useInitializeUser, userDataAtom } from '@/utils/user'
 import { useAtom } from 'jotai'
 import {
-  useAddDesignation,
-  useDeleteDesignation,
-  useGetDesignations,
-  useUpdateDesignation,
+  useAddLeaveType,
+  useDeleteLeaveType,
+  useGetLeaveTypes,
+  useUpdateLeaveType,
 } from '@/hooks/use-api'
 import {
   AlertDialog,
@@ -42,34 +42,34 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-const Designations = () => {
+const LeaveTypes = () => {
   useInitializeUser()
   const [userData] = useAtom(userDataAtom)
 
-  const { data: designations } = useGetDesignations()
-  console.log('🚀 ~ Designations ~ designations:', designations)
+  const { data: leaveTypes } = useGetLeaveTypes()
+  console.log('🚀 ~ LeaveTypes ~ leaveTypes:', leaveTypes)
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [designationsPerPage] = useState(10)
+  const [leaveTypesPerPage] = useState(10)
   const [sortColumn, setSortColumn] =
-    useState<keyof GetDesignationType>('designationName')
+    useState<keyof GetLeaveTypeType>('leaveTypeName')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [searchTerm, setSearchTerm] = useState('')
 
   const [isPopupOpen, setIsPopupOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
-  const [editingDesignationId, setEditingDesignationId] = useState<number | null>(
+  const [editingLeaveTypeId, setEditingLeaveTypeId] = useState<number | null>(
     null
   )
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [deletingDesignationId, setDeletingDesignationId] = useState<
+  const [deletingLeaveTypeId, setDeletingLeaveTypeId] = useState<
     number | null
   >(null)
 
-  const [formData, setFormData] = useState<CreateDesignationType>({
-    designationName: '',
+  const [formData, setFormData] = useState<CreateLeaveTypeType>({
+    leaveTypeName: '',
     createdBy: userData?.userId || 0,
   })
 
@@ -85,10 +85,10 @@ const Designations = () => {
 
   const resetForm = useCallback(() => {
     setFormData({
-      designationName: '',
+      leaveTypeName: '',
       createdBy: userData?.userId || 0,
     })
-    setEditingDesignationId(null)
+    setEditingLeaveTypeId(null)
     setIsEditMode(false)
     setIsPopupOpen(false)
     setError(null)
@@ -100,22 +100,22 @@ const Designations = () => {
     resetForm()
   }, [resetForm])
 
-  const addMutation = useAddDesignation({
+  const addMutation = useAddLeaveType({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const updateMutation = useUpdateDesignation({
+  const updateMutation = useUpdateLeaveType({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const deleteMutation = useDeleteDesignation({
+  const deleteMutation = useDeleteLeaveType({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const handleSort = (column: keyof GetDesignationType) => {
+  const handleSort = (column: keyof GetLeaveTypeType) => {
     if (column === sortColumn) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
@@ -124,29 +124,29 @@ const Designations = () => {
     }
   }
 
-  const filteredDesignations = useMemo(() => {
-    if (!designations?.data) return []
-    return designations.data?.filter((dept) =>
-      dept.designationName?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredLeaveTypes = useMemo(() => {
+    if (!leaveTypes?.data) return []
+    return leaveTypes.data?.filter((dept) =>
+      dept.leaveTypeName?.toLowerCase().includes(searchTerm.toLowerCase())
     )
-  }, [designations?.data, searchTerm])
+  }, [leaveTypes?.data, searchTerm])
 
-  const sortedDesignations = useMemo(() => {
-    return [...filteredDesignations].sort((a, b) => {
-      const aValue = a.designationName ?? ''
-      const bValue = b.designationName ?? ''
+  const sortedLeaveTypes = useMemo(() => {
+    return [...filteredLeaveTypes].sort((a, b) => {
+      const aValue = a.leaveTypeName ?? ''
+      const bValue = b.leaveTypeName ?? ''
       return sortDirection === 'asc'
         ? aValue.localeCompare(bValue)
         : bValue.localeCompare(aValue)
     })
-  }, [filteredDesignations, sortDirection])
+  }, [filteredLeaveTypes, sortDirection])
 
-  const paginatedDesignations = useMemo(() => {
-    const startIndex = (currentPage - 1) * designationsPerPage
-    return sortedDesignations.slice(startIndex, startIndex + designationsPerPage)
-  }, [sortedDesignations, currentPage, designationsPerPage])
+  const paginatedLeaveTypes = useMemo(() => {
+    const startIndex = (currentPage - 1) * leaveTypesPerPage
+    return sortedLeaveTypes.slice(startIndex, startIndex + leaveTypesPerPage)
+  }, [sortedLeaveTypes, currentPage, leaveTypesPerPage])
 
-  const totalPages = Math.ceil(sortedDesignations.length / designationsPerPage)
+  const totalPages = Math.ceil(sortedLeaveTypes.length / leaveTypesPerPage)
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -155,8 +155,8 @@ const Designations = () => {
       setError(null)
 
       try {
-        const submitData: CreateDesignationType = {
-          designationName: formData.designationName,
+        const submitData: CreateLeaveTypeType = {
+          leaveTypeName: formData.leaveTypeName,
           createdBy: formData.createdBy,
         }
 
@@ -166,25 +166,25 @@ const Designations = () => {
           submitData.createdBy = userData?.userId || 0
         }
 
-        if (isEditMode && editingDesignationId) {
+        if (isEditMode && editingLeaveTypeId) {
           updateMutation.mutate({
-            id: editingDesignationId,
+            id: editingLeaveTypeId,
             data: submitData,
           })
-          console.log('update', isEditMode, editingDesignationId)
+          console.log('update', isEditMode, editingLeaveTypeId)
         } else {
           addMutation.mutate(submitData)
           console.log('create')
         }
       } catch (err) {
-        setError('Failed to save designation')
+        setError('Failed to save leaveType')
         console.error(err)
       }
     },
     [
       formData,
       isEditMode,
-      editingDesignationId,
+      editingLeaveTypeId,
       addMutation,
       updateMutation,
       userData,
@@ -193,16 +193,16 @@ const Designations = () => {
 
   useEffect(() => {
     if (addMutation.error || updateMutation.error) {
-      setError('Error saving designation')
+      setError('Error saving leaveType')
     }
   }, [addMutation.error, updateMutation.error])
 
   const handleEditClick = (dept: any) => {
     setFormData({
-      designationName: dept.designationName,
+      leaveTypeName: dept.leaveTypeName,
       createdBy: userData?.userId || 0,
     })
-    setEditingDesignationId(dept.designationId)
+    setEditingLeaveTypeId(dept.leaveTypeId)
     setIsEditMode(true)
     setIsPopupOpen(true)
   }
@@ -214,13 +214,13 @@ const Designations = () => {
           <div className="bg-amber-100 p-2 rounded-md">
             <BookOpen className="text-amber-600" />
           </div>
-          <h2 className="text-lg font-semibold">Designations</h2>
+          <h2 className="text-lg font-semibold">LeaveTypes</h2>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Search designations..."
+              placeholder="Search leaveTypes..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-64"
@@ -241,39 +241,39 @@ const Designations = () => {
             <TableRow>
               <TableHead>Sl No.</TableHead>
               <TableHead
-                onClick={() => handleSort('designationName')}
+                onClick={() => handleSort('leaveTypeName')}
                 className="cursor-pointer"
               >
-                Designation Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                LeaveType Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!designations || designations.data === undefined ? (
+            {!leaveTypes || leaveTypes.data === undefined ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-4">
-                  Loading designations...
+                  Loading leaveTypes...
                 </TableCell>
               </TableRow>
-            ) : !designations.data || designations.data.length === 0 ? (
+            ) : !leaveTypes.data || leaveTypes.data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-4">
-                  No designations found
+                  No leaveTypes found
                 </TableCell>
               </TableRow>
-            ) : paginatedDesignations.length === 0 ? (
+            ) : paginatedLeaveTypes.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-4">
-                  No designations match your search
+                  No leaveTypes match your search
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedDesignations.map((dept: any, index) => (
+              paginatedLeaveTypes.map((dept: any, index) => (
                 <TableRow key={index}>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell className="font-medium">
-                    {dept.designationName}
+                    {dept.leaveTypeName}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -290,7 +290,7 @@ const Designations = () => {
                         size="sm"
                         className="text-red-600 hover:text-red-700"
                         onClick={() => {
-                          setDeletingDesignationId(dept.designationId)
+                          setDeletingLeaveTypeId(dept.leaveTypeId)
                           setIsDeleteDialogOpen(true)
                         }}
                       >
@@ -305,7 +305,7 @@ const Designations = () => {
         </Table>
       </div>
 
-      {sortedDesignations.length > 0 && (
+      {sortedLeaveTypes.length > 0 && (
         <div className="mt-4">
           <Pagination>
             <PaginationContent>
@@ -370,19 +370,19 @@ const Designations = () => {
       <Popup
         isOpen={isPopupOpen}
         onClose={closePopup}
-        title={isEditMode ? 'Edit Designation' : 'Add Designation'}
+        title={isEditMode ? 'Edit LeaveType' : 'Add LeaveType'}
         size="sm:max-w-md"
       >
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="designationName">
-                Designation Name <span className="text-red-500">*</span>
+              <Label htmlFor="leaveTypeName">
+                LeaveType Name <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="designationName"
-                name="designationName"
-                value={formData.designationName}
+                id="leaveTypeName"
+                name="leaveTypeName"
+                value={formData.leaveTypeName}
                 onChange={handleInputChange}
                 required
               />
@@ -417,9 +417,9 @@ const Designations = () => {
       >
         <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Designation</AlertDialogTitle>
+            <AlertDialogTitle>Delete LeaveType</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this designation? This action
+              Are you sure you want to delete this leaveType? This action
               cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -429,8 +429,8 @@ const Designations = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (deletingDesignationId) {
-                  deleteMutation.mutate({ id: deletingDesignationId })
+                if (deletingLeaveTypeId) {
+                  deleteMutation.mutate({ id: deletingLeaveTypeId })
                 }
                 setIsDeleteDialogOpen(false)
               }}
@@ -445,4 +445,4 @@ const Designations = () => {
   )
 }
 
-export default Designations
+export default LeaveTypes

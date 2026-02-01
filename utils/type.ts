@@ -46,10 +46,10 @@ export type SignInResponse = z.infer<typeof SignInResponseSchema>
 export const departmentSchema = z.object({
   departmentId: z.number().optional(),
   departmentName: z.string(),
-  createdBy: z.number().optional(),
-  createdAt: z.date().optional(),
-  updatedBy: z.number().nullable().optional(),
-  updatedAt: z.date().optional(),
+  createdBy: z.number(),
+  createdAt: z.number().optional().nullable(),
+  updatedBy: z.number().optional().nullable(),
+  updatedAt: z.number().optional().nullable(),
 })
 export type CreateDepartmentType = z.infer<typeof departmentSchema>
 export type GetDepartmentType = z.infer<typeof departmentSchema>
@@ -58,10 +58,10 @@ export type GetDepartmentType = z.infer<typeof departmentSchema>
 export const designationSchema = z.object({
   designationId: z.number().optional(),
   designationName: z.string(),
-  createdBy: z.number().optional(),
-  createdAt: z.date().optional(),
-  updatedBy: z.number().optional(),
-  updatedAt: z.date().optional(),
+  createdBy: z.number(),
+  createdAt: z.number().optional().nullable(),
+  updatedBy: z.number().optional().nullable(),
+  updatedAt: z.number().optional().nullable(),
 })
 export type CreateDesignationType = z.infer<typeof designationSchema>
 export type GetDesignationType = z.infer<typeof designationSchema>
@@ -70,17 +70,17 @@ export type GetDesignationType = z.infer<typeof designationSchema>
 export const employeeTypeSchema = z.object({
   employeeTypeId: z.number().optional(),
   employeeTypeName: z.string(),
-  createdBy: z.number().optional(),
-  createdAt: z.date().optional(),
-  updatedBy: z.number().nullable().optional(),
-  updatedAt: z.date().optional(),
+  createdBy: z.number(),
+  createdAt: z.number().optional().nullable(),
+  updatedBy: z.number().optional().nullable(),
+  updatedAt: z.number().optional().nullable(),
 })
 export type CreateEmployeeTypeType = z.infer<typeof employeeTypeSchema>
 export type GetEmployeeTypeType = z.infer<typeof employeeTypeSchema>
 
 //employee
 export const employeeSchema = z.object({
-  employeeId: z.number(),
+  employeeId: z.number().optional(),
   fullName: z.string().min(1, 'Full name is required'),
   email: z.string().email('Invalid email'),
   officialPhone: z.string().min(1, 'Official phone is required'),
@@ -90,6 +90,7 @@ export const employeeSchema = z.object({
   emergencyContactName: z.string().optional().nullable(),
   emergencyContactPhone: z.string().optional().nullable(),
   photoUrl: z.string().url().optional().nullable(),
+  cvUrl: z.string().url().optional().nullable(),
   dob: z.string().min(1, 'Date of birth is required'),
   doj: z.string().min(1, 'Date of joining is required'),
   gender: z.enum(['Male', 'Female']),
@@ -105,9 +106,44 @@ export const employeeSchema = z.object({
   designationId: z.number(),
   employeeTypeId: z.number(),
   createdBy: z.number(),
-  createdAt: z.number(),
+  createdAt: z.number().optional().nullable(),
   updatedBy: z.number().optional().nullable(),
   updatedAt: z.number().optional().nullable(),
 })
 export type CreateEmployeeType = z.infer<typeof employeeSchema>
 export type GetEmployeeType = z.infer<typeof employeeSchema>
+
+//weekend
+export const weekendSchema = z.object({
+  weekendId: z.number().optional(),
+  day: z.string(),
+})
+export type GetWeekendType = z.infer<typeof weekendSchema>
+
+//holiday
+export const holidaySchema = z.object({
+  holidayId: z.number().optional(),
+  holidayName: z.string(),
+  startDate: z.string(),
+  endDate: z.string(),
+  noOfDays: z.number(),
+  description: z.string().optional().nullable(),
+  createdBy: z.number(),
+  createdAt: z.number().optional().nullable(),
+  updatedBy: z.number().optional().nullable(),
+  updatedAt: z.number().optional().nullable(),
+})
+export type CreateHolidayType = z.infer<typeof holidaySchema>
+export type GetHolidayType = z.infer<typeof holidaySchema>
+
+//leave type
+export const leaveTypeSchema = z.object({
+  leaveTypeId: z.number().optional(),
+  leaveTypeName: z.string(),
+  createdBy: z.number(),
+  createdAt: z.number().optional().nullable(),
+  updatedBy: z.number().optional().nullable(),
+  updatedAt: z.number().optional().nullable(),
+})
+export type CreateLeaveTypeType = z.infer<typeof leaveTypeSchema>
+export type GetLeaveTypeType = z.infer<typeof leaveTypeSchema>

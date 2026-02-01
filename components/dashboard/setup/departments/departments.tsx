@@ -157,6 +157,7 @@ const Departments = () => {
       try {
         const submitData: CreateDepartmentType = {
           departmentName: formData.departmentName,
+          createdBy: formData.createdBy,
         }
 
         if (isEditMode) {

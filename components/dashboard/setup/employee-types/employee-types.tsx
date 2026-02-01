@@ -162,6 +162,7 @@ const EmployeeTypes = () => {
       try {
         const submitData: CreateEmployeeTypeType = {
           employeeTypeName: formData.employeeTypeName,
+          createdBy: formData.createdBy,
         }
 
         if (isEditMode) {

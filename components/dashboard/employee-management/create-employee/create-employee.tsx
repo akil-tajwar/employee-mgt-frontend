@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { User, Upload, Download } from 'lucide-react'
 import { tokenAtom, useInitializeUser, userDataAtom } from '@/utils/user'
 import { useAtom } from 'jotai'
@@ -21,6 +22,7 @@ import {
   useGetDepartments,
   useGetDesignations,
   useGetEmployeeTypes,
+  useGetWeekends,
 } from '@/hooks/use-api'
 import type { CreateEmployeeType } from '@/utils/type'
 import { toast } from '@/hooks/use-toast'
@@ -36,12 +38,16 @@ const CreateEmployee = () => {
   const { data: departments } = useGetDepartments()
   const { data: designations } = useGetDesignations()
   const { data: employeeTypes } = useGetEmployeeTypes()
+  const { data: weekends } = useGetWeekends()
+  console.log("🚀 ~ CreateEmployee ~ weekends:", weekends)
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isPopupOpen, setIsPopupOpen] = useState(false)
   const [isImportPopupOpen, setIsImportPopupOpen] = useState(false)
 
   const [employeePhotoFile, setEmployeePhotoFile] = useState<File | null>(null)
+  const [cvUrl, setCvFile] = useState<File | null>(null)
+  const [selectedWeekendIds, setSelectedWeekendIds] = useState<number[]>([])
 
   const [formData, setFormData] = useState<
     Omit<
@@ -58,6 +64,7 @@ const CreateEmployee = () => {
     emergencyContactName: null,
     emergencyContactPhone: null,
     photoUrl: null,
+    cvUrl: null,
     dob: '',
     doj: new Date().toISOString().split('T')[0],
     gender: 'Male',
@@ -99,6 +106,26 @@ const CreateEmployee = () => {
     }
   }
 
+  const handleCvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        setError('Please upload a PDF file for CV')
+        return
+      }
+      setCvFile(file)
+      setError(null)
+    }
+  }
+
+  const handleWeekendToggle = (weekendId: number) => {
+    setSelectedWeekendIds((prev) =>
+      prev.includes(weekendId)
+        ? prev.filter((id) => id !== weekendId)
+        : [...prev, weekendId]
+    )
+  }
+
   const handleSelectChange = (name: string, value: string) => {
     if (name === 'gender' || name === 'bloodGroup') {
       setFormData((prev) => ({
@@ -124,6 +151,7 @@ const CreateEmployee = () => {
       emergencyContactName: null,
       emergencyContactPhone: null,
       photoUrl: null,
+      cvUrl: null,
       dob: '',
       doj: new Date().toISOString().split('T')[0],
       gender: 'Male',
@@ -138,6 +166,8 @@ const CreateEmployee = () => {
       createdBy: userData?.userId || 0,
     })
     setEmployeePhotoFile(null)
+    setCvFile(null)
+    setSelectedWeekendIds([])
     setIsPopupOpen(false)
     setError(null)
   }
@@ -157,6 +187,7 @@ const CreateEmployee = () => {
     setError(null)
     console.log('=== FORM SUBMISSION START ===')
     console.log('📋 Employee Details:', formData)
+    console.log('📅 Selected Weekend IDs:', selectedWeekendIds)
 
     // Validations
     if (!formData.fullName.trim()) return setError('Please enter full name')
@@ -185,6 +216,8 @@ const CreateEmployee = () => {
     const employeeDetailsPayload = {
       ...formData,
       photoUrl: null,
+      cvUrl: null,
+      weekendIds: selectedWeekendIds,
     }
     console.log(
       '📦 Employee Details Payload (without photo):',
@@ -196,6 +229,12 @@ const CreateEmployee = () => {
     if (employeePhotoFile) {
       form.append('photoUrl', employeePhotoFile)
       console.log(`✅ Appended photoUrl to FormData`)
+    }
+
+    // Append CV only if selected
+    if (cvUrl) {
+      form.append('cvUrl', cvUrl)
+      console.log(`✅ Appended cvUrl to FormData`)
     }
 
     console.log('📤 FormData contents:')
@@ -244,6 +283,7 @@ const CreateEmployee = () => {
         DepartmentId: '',
         DesignationId: '',
         EmployeeTypeId: '',
+        WeekendIds: '',
       },
     ]
 
@@ -280,6 +320,7 @@ const CreateEmployee = () => {
         emergencyContactName: row['EmergencyContactName'] || null,
         emergencyContactPhone: row['EmergencyContactPhone'] || null,
         photoUrl: null,
+        cvUrl: null,
         dob: row['DOB'] || '',
         doj: row['DOJ'] || new Date().toISOString().split('T')[0],
         gender: row['Gender'] || 'Male',
@@ -294,6 +335,13 @@ const CreateEmployee = () => {
           ? Number(row['EmployeeTypeId'])
           : 0,
         createdBy: userData?.userId || 0,
+        weekendIds: row['WeekendIds']
+          ? row['WeekendIds']
+              .toString()
+              .split(',')
+              .map((id: string) => Number(id.trim()))
+              .filter((id: number) => !isNaN(id))
+          : [],
       }))
 
       console.log('Employees to create:', employeesToCreate)
@@ -304,6 +352,7 @@ const CreateEmployee = () => {
         const employeeDetailsPayload = {
           ...employee,
           photoUrl: null,
+          cvUrl: null,
         }
         form.append('employeeDetails', JSON.stringify(employeeDetailsPayload))
 
@@ -365,7 +414,7 @@ const CreateEmployee = () => {
       <form onSubmit={handleSubmit} className="space-y-6 py-4">
         {/* Basic Information Section */}
         <div className="border p-8 rounded-lg bg-slate-100">
-          <h3 className="text-md font-semibold mb-4">Basic Information</h3>
+          <h3 className="text-md font-semibold mb-4">Personal Information</h3>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="fullName">
@@ -380,19 +429,134 @@ const CreateEmployee = () => {
                 required
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="empCode">
-                Employee Code <span className="text-red-500">*</span>
+              <Label htmlFor="employeePhoto" className="text-sm">
+                Employee Photo
               </Label>
               <Input
-                id="empCode"
-                name="empCode"
+                id="employeePhoto"
+                type="file"
+                accept="image/*"
+                onChange={handleEmployeePhotoChange}
+                className="text-sm"
+              />
+              {employeePhotoFile && (
+                <p className="text-xs text-green-600">
+                  ✓ Photo selected: {employeePhotoFile.name}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="border p-8 rounded-lg bg-slate-100">
+          <h3 className="text-md font-semibold mb-4">Address</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="presentAddress">
+                Present Address <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="presentAddress"
+                name="presentAddress"
                 type="text"
-                value={formData.empCode}
+                value={formData.presentAddress}
                 onChange={handleInputChange}
                 required
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="permanentAddress">Permanent Address</Label>
+              <Input
+                id="permanentAddress"
+                name="permanentAddress"
+                type="text"
+                value={formData.permanentAddress || ''}
+                onChange={handleInputChange}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="border p-8 rounded-lg bg-slate-100">
+          <h3 className="text-md font-semibold mb-4">Physical Details</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="gender">
+                Gender <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formData.gender}
+                onValueChange={(value) => handleSelectChange('gender', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bloodGroup">Blood Group</Label>
+              <Select
+                value={formData.bloodGroup || ''}
+                onValueChange={(value) =>
+                  handleSelectChange('bloodGroup', value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select blood group" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="O+">O+</SelectItem>
+                  <SelectItem value="A+">A+</SelectItem>
+                  <SelectItem value="B+">B+</SelectItem>
+                  <SelectItem value="AB+">AB+</SelectItem>
+                  <SelectItem value="O-">O-</SelectItem>
+                  <SelectItem value="A-">A-</SelectItem>
+                  <SelectItem value="B-">B-</SelectItem>
+                  <SelectItem value="AB-">AB-</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Address & Contact Information Section */}
+        <div className="border p-8 rounded-lg bg-slate-100">
+          <h3 className="text-md font-semibold mb-4">Emergency Contact</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="emergencyContactName">
+                Emergency Contact Name
+              </Label>
+              <Input
+                id="emergencyContactName"
+                name="emergencyContactName"
+                type="text"
+                value={formData.emergencyContactName || ''}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="emergencyContactPhone">
+                Emergency Contact Phone
+              </Label>
+              <Input
+                id="emergencyContactPhone"
+                name="emergencyContactPhone"
+                type="tel"
+                value={formData.emergencyContactPhone || ''}
+                onChange={handleInputChange}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="border p-8 rounded-lg bg-slate-100">
+          <h3 className="text-md font-semibold mb-4">Contact Info</h3>
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="email">
                 Email <span className="text-red-500">*</span>
@@ -429,152 +593,26 @@ const CreateEmployee = () => {
                 onChange={handleInputChange}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="gender">
-                Gender <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={formData.gender}
-                onValueChange={(value) => handleSelectChange('gender', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Male">Male</SelectItem>
-                  <SelectItem value="Female">Female</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dob">
-                Date of Birth <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="dob"
-                name="dob"
-                type="date"
-                value={formData.dob}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="doj">
-                Date of Joining <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="doj"
-                name="doj"
-                type="date"
-                value={formData.doj}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bloodGroup">Blood Group</Label>
-              <Select
-                value={formData.bloodGroup || ''}
-                onValueChange={(value) =>
-                  handleSelectChange('bloodGroup', value)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select blood group" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="O+">O+</SelectItem>
-                  <SelectItem value="A+">A+</SelectItem>
-                  <SelectItem value="B+">B+</SelectItem>
-                  <SelectItem value="AB+">AB+</SelectItem>
-                  <SelectItem value="O-">O-</SelectItem>
-                  <SelectItem value="A-">A-</SelectItem>
-                  <SelectItem value="B-">B-</SelectItem>
-                  <SelectItem value="AB-">AB-</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="employeePhoto" className="text-sm">
-                Employee Photo
-              </Label>
-              <Input
-                id="employeePhoto"
-                type="file"
-                accept="image/*"
-                onChange={handleEmployeePhotoChange}
-                className="text-sm"
-              />
-              {employeePhotoFile && (
-                <p className="text-xs text-green-600">
-                  ✓ Photo selected: {employeePhotoFile.name}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Address & Contact Information Section */}
-        <div className="border p-8 rounded-lg bg-slate-100">
-          <h3 className="text-md font-semibold mb-4">
-            Address & Contact Information
-          </h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="presentAddress">
-                Present Address <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="presentAddress"
-                name="presentAddress"
-                type="text"
-                value={formData.presentAddress}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="permanentAddress">Permanent Address</Label>
-              <Input
-                id="permanentAddress"
-                name="permanentAddress"
-                type="text"
-                value={formData.permanentAddress || ''}
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="emergencyContactName">
-                Emergency Contact Name
-              </Label>
-              <Input
-                id="emergencyContactName"
-                name="emergencyContactName"
-                type="text"
-                value={formData.emergencyContactName || ''}
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="emergencyContactPhone">
-                Emergency Contact Phone
-              </Label>
-              <Input
-                id="emergencyContactPhone"
-                name="emergencyContactPhone"
-                type="tel"
-                value={formData.emergencyContactPhone || ''}
-                onChange={handleInputChange}
-              />
-            </div>
           </div>
         </div>
 
         {/* Employment Details Section */}
         <div className="border p-8 rounded-lg bg-slate-100">
-          <h3 className="text-md font-semibold mb-4">Employment Details</h3>
+          <h3 className="text-md font-semibold mb-4">Official</h3>
           <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="empCode">
+                Employee Code <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="empCode"
+                name="empCode"
+                type="text"
+                value={formData.empCode}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="departmentId">
                 Department <span className="text-red-500">*</span>
@@ -668,9 +706,94 @@ const CreateEmployee = () => {
                 placeholder="Select employee type"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dob">
+                Date of Birth <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="dob"
+                name="dob"
+                type="date"
+                value={formData.dob}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="doj">
+                Date of Joining <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="doj"
+                name="doj"
+                type="date"
+                value={formData.doj}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+            <Label htmlFor="cvUrl" className="text-sm">
+              Upload CV (PDF only)
+            </Label>
+            <Input
+              id="cvUrl"
+              type="file"
+              accept="application/pdf"
+              onChange={handleCvChange}
+              className="text-sm"
+            />
+            {cvUrl && (
+              <p className="text-xs text-green-600">
+                ✓ CV selected: {cvUrl.name}
+              </p>
+            )}
+          </div>
+          </div>
+        </div>
+
+        {/* Weekends Section */}
+        <div className="border p-8 rounded-lg bg-slate-100">
+          <h3 className="text-md font-semibold mb-4">Weekends</h3>
+          <div className="space-y-3">
+            <Label>Select Weekend Days</Label>
+            <div className="grid gap-3 md:grid-cols-3">
+              {weekends?.data?.map((weekend) => (
+                  <div
+                    key={weekend.weekendId}
+                    className="flex items-center space-x-2"
+                  >
+                    <Checkbox
+                      id={`weekend-${weekend.weekendId}`}
+                      checked={weekend.weekendId !== undefined && selectedWeekendIds.includes(weekend.weekendId)}
+                      onCheckedChange={() =>
+                        weekend.weekendId !== undefined && handleWeekendToggle(weekend.weekendId)
+                      }
+                    />
+                  <label
+                    htmlFor={`weekend-${weekend.weekendId}`}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    {weekend.day}
+                  </label>
+                </div>
+              ))}
+            </div>
+            {selectedWeekendIds.length > 0 && (
+              <p className="text-xs text-green-600">
+                ✓ {selectedWeekendIds.length} weekend(s) selected
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="border p-8 rounded-lg bg-slate-100">
+          <h3 className="text-md font-semibold mb-4">Salary</h3>
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="basicSalary">
-                Basic Salary <span className="text-red-500">*</span>
+                Basic Salary
               </Label>
               <Input
                 id="basicSalary"
@@ -786,6 +909,10 @@ const CreateEmployee = () => {
               </li>
               <li>
                 <strong>EmployeeTypeId</strong> - Employee Type ID (required)
+              </li>
+              <li>
+                <strong>WeekendIds</strong> - Comma-separated weekend IDs (e.g.,
+                &quot;1,2&quot; for multiple weekends)
               </li>
             </ul>
             <p className="text-sm text-gray-700 mt-3">
