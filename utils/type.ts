@@ -46,10 +46,10 @@ export type SignInResponse = z.infer<typeof SignInResponseSchema>
 export const departmentSchema = z.object({
   departmentId: z.number().optional(),
   departmentName: z.string(),
-  createdBy: z.number().optional(),
-  createdAt: z.date().optional(),
-  updatedBy: z.number().nullable().optional(),
-  updatedAt: z.date().optional(),
+  createdBy: z.number(),
+  createdAt: z.number().optional().nullable(),
+  updatedBy: z.number().optional().nullable(),
+  updatedAt: z.number().optional().nullable(),
 })
 export type CreateDepartmentType = z.infer<typeof departmentSchema>
 export type GetDepartmentType = z.infer<typeof departmentSchema>
@@ -58,10 +58,10 @@ export type GetDepartmentType = z.infer<typeof departmentSchema>
 export const designationSchema = z.object({
   designationId: z.number().optional(),
   designationName: z.string(),
-  createdBy: z.number().optional(),
-  createdAt: z.date().optional(),
-  updatedBy: z.number().optional(),
-  updatedAt: z.date().optional(),
+  createdBy: z.number(),
+  createdAt: z.number().optional().nullable(),
+  updatedBy: z.number().optional().nullable(),
+  updatedAt: z.number().optional().nullable(),
 })
 export type CreateDesignationType = z.infer<typeof designationSchema>
 export type GetDesignationType = z.infer<typeof designationSchema>
@@ -70,10 +70,10 @@ export type GetDesignationType = z.infer<typeof designationSchema>
 export const employeeTypeSchema = z.object({
   employeeTypeId: z.number().optional(),
   employeeTypeName: z.string(),
-  createdBy: z.number().optional(),
-  createdAt: z.date().optional(),
-  updatedBy: z.number().nullable().optional(),
-  updatedAt: z.date().optional(),
+  createdBy: z.number(),
+  createdAt: z.number().optional().nullable(),
+  updatedBy: z.number().optional().nullable(),
+  updatedAt: z.number().optional().nullable(),
 })
 export type CreateEmployeeTypeType = z.infer<typeof employeeTypeSchema>
 export type GetEmployeeTypeType = z.infer<typeof employeeTypeSchema>
@@ -106,7 +106,7 @@ export const employeeSchema = z.object({
   designationId: z.number(),
   employeeTypeId: z.number(),
   createdBy: z.number(),
-  createdAt: z.number(),
+  createdAt: z.number().optional().nullable(),
   updatedBy: z.number().optional().nullable(),
   updatedAt: z.number().optional().nullable(),
 })
@@ -118,3 +118,18 @@ export const weekendSchema = z.object({
   day: z.string(),
 })
 export type GetWeekendType = z.infer<typeof weekendSchema>
+
+export const holidaySchema = z.object({
+  holidayId: z.number().optional(),
+  holidayName: z.string(),
+  startDate: z.string(),
+  endDate: z.string(),
+  noOfDays: z.number(),
+  description: z.string().optional().nullable(),
+  createdBy: z.number(),
+  createdAt: z.number().optional().nullable(),
+  updatedBy: z.number().optional().nullable(),
+  updatedAt: z.number().optional().nullable(),
+})
+export type CreateHolidayType = z.infer<typeof holidaySchema>
+export type GetHolidayType = z.infer<typeof holidaySchema>

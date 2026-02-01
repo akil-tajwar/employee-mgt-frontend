@@ -793,7 +793,7 @@ const CreateEmployee = () => {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="basicSalary">
-                Basic Salary <span className="text-red-500">*</span>
+                Basic Salary
               </Label>
               <Input
                 id="basicSalary"

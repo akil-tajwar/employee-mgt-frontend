@@ -4,10 +4,12 @@ import {
   CreateDesignationType,
   CreateEmployeeType,
   CreateEmployeeTypeType,
+  CreateHolidayType,
   GetDepartmentType,
   GetDesignationType,
   GetEmployeeType,
   GetEmployeeTypeType,
+  GetHolidayType,
   GetWeekendType,
   SignInRequest,
   SignInResponse,
@@ -252,6 +254,60 @@ export async function editEmployee(
 export async function deleteEmployee(id: number, token: string) {
   return fetchApi<{ id: number }>({
     url: `api/employees/delete/${id}`,
+    method: 'DELETE',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+//holidays
+export async function getAllHolidays(token: string) {
+  return fetchApi<GetHolidayType[]>({
+    url: 'api/holidays/getall',
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function createHoliday(
+  data: CreateHolidayType,
+  token: string
+) {
+  return fetchApi<CreateHolidayType>({
+    url: 'api/holidays/create',
+    method: 'POST',
+    body: data,
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function editHoliday(
+  id: number,
+  data: GetHolidayType,
+  token: string
+) {
+  return fetchApi<GetHolidayType>({
+    url: `api/holidays/edit/${id}`,
+    method: 'PATCH',
+    body: data,
+    headers: {
+      Authorization: `${token}`,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function deleteHoliday(id: number, token: string) {
+  return fetchApi<{ id: number }>({
+    url: `api/holidays/delete/${id}`,
     method: 'DELETE',
     headers: {
       Authorization: token,

@@ -7,22 +7,26 @@ import {
   createDesignation,
   createEmployee,
   createEmployeeType,
+  createHoliday,
   deleteDepartment,
   deleteDesignation,
   deleteEmployee,
   deleteEmployeeType,
+  deleteHoliday,
   editDepartment,
   editDesignation,
   editEmployee,
   editEmployeeType,
+  editHoliday,
   getAllDepartments,
   getAllDesignations,
   getAllEmployees,
   getAllEmployeeTypes,
+  getAllHolidays,
   getAllWeekends,
   getEmployeeById,
 } from '@/utils/api'
-import { CreateDepartmentType, CreateDesignationType, CreateEmployeeTypeType } from '@/utils/type'
+import { CreateDepartmentType, CreateDesignationType, CreateEmployeeTypeType, CreateHolidayType } from '@/utils/type'
 
 //departments
 export const useGetDepartments = () => {
@@ -522,6 +526,126 @@ export const useDeleteEmployee = ({
         description: 'employee is deleted successfully.',
       })
       queryClient.invalidateQueries({ queryKey: ['employees'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error sending delete request:', error)
+    },
+  })
+
+  return mutation
+}
+
+//holidays
+export const useGetHolidays = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['holidays'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getAllHolidays(token)
+    },
+    enabled: !!token,
+    select: (data) => data,
+  })
+}
+
+export const useAddHoliday = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (data: CreateHolidayType) => {
+      return createHoliday(data, token)
+    },
+    onSuccess: (data) => {
+      console.log('holiday added successfully:', data)
+      queryClient.invalidateQueries({ queryKey: ['holidays'] })
+
+      // Reset form fields after success
+      reset()
+
+      // Close the form modal
+      onClose()
+    },
+    onError: (error) => {
+      // Handle error
+      console.error('Error adding employeeType:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useUpdateHoliday = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: CreateHolidayType }) => {
+      return editHoliday(id, data, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'holiday edited successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['holidays'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error editing employeeType:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useDeleteHoliday = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id }: { id: number }) => {
+      return deleteHoliday(id, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'holiday is deleted successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['holidays'] })
 
       reset()
       onClose()
