@@ -113,12 +113,14 @@ export const employeeSchema = z.object({
 export type CreateEmployeeType = z.infer<typeof employeeSchema>
 export type GetEmployeeType = z.infer<typeof employeeSchema>
 
+//weekend
 export const weekendSchema = z.object({
   weekendId: z.number().optional(),
   day: z.string(),
 })
 export type GetWeekendType = z.infer<typeof weekendSchema>
 
+//holiday
 export const holidaySchema = z.object({
   holidayId: z.number().optional(),
   holidayName: z.string(),
@@ -133,3 +135,15 @@ export const holidaySchema = z.object({
 })
 export type CreateHolidayType = z.infer<typeof holidaySchema>
 export type GetHolidayType = z.infer<typeof holidaySchema>
+
+//leave type
+export const leaveTypeSchema = z.object({
+  leaveTypeId: z.number().optional(),
+  leaveTypeName: z.string(),
+  createdBy: z.number(),
+  createdAt: z.number().optional().nullable(),
+  updatedBy: z.number().optional().nullable(),
+  updatedAt: z.number().optional().nullable(),
+})
+export type CreateLeaveTypeType = z.infer<typeof leaveTypeSchema>
+export type GetLeaveTypeType = z.infer<typeof leaveTypeSchema>

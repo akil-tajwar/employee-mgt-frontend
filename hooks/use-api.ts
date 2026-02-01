@@ -8,25 +8,29 @@ import {
   createEmployee,
   createEmployeeType,
   createHoliday,
+  createLeaveType,
   deleteDepartment,
   deleteDesignation,
   deleteEmployee,
   deleteEmployeeType,
   deleteHoliday,
+  deleteLeaveType,
   editDepartment,
   editDesignation,
   editEmployee,
   editEmployeeType,
   editHoliday,
+  editLeaveType,
   getAllDepartments,
   getAllDesignations,
   getAllEmployees,
   getAllEmployeeTypes,
   getAllHolidays,
+  getAllLeaveTypes,
   getAllWeekends,
   getEmployeeById,
 } from '@/utils/api'
-import { CreateDepartmentType, CreateDesignationType, CreateEmployeeTypeType, CreateHolidayType } from '@/utils/type'
+import { CreateDepartmentType, CreateDesignationType, CreateEmployeeTypeType, CreateHolidayType, CreateLeaveTypeType } from '@/utils/type'
 
 //departments
 export const useGetDepartments = () => {
@@ -646,6 +650,126 @@ export const useDeleteHoliday = ({
         description: 'holiday is deleted successfully.',
       })
       queryClient.invalidateQueries({ queryKey: ['holidays'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error sending delete request:', error)
+    },
+  })
+
+  return mutation
+}
+
+//leave type
+export const useGetLeaveTypes = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['leaveTypes'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getAllLeaveTypes(token)
+    },
+    enabled: !!token,
+    select: (data) => data,
+  })
+}
+
+export const useAddLeaveType = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (data: CreateLeaveTypeType) => {
+      return createLeaveType(data, token)
+    },
+    onSuccess: (data) => {
+      console.log('leave type added successfully:', data)
+      queryClient.invalidateQueries({ queryKey: ['leaveTypes'] })
+
+      // Reset form fields after success
+      reset()
+
+      // Close the form modal
+      onClose()
+    },
+    onError: (error) => {
+      // Handle error
+      console.error('Error adding leaveType:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useUpdateLeaveType = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: CreateLeaveTypeType }) => {
+      return editLeaveType(id, data, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'eave type edited successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['leaveTypes'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error editing leaveType:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useDeleteLeaveType = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id }: { id: number }) => {
+      return deleteLeaveType(id, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'leave type is deleted successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['leaveTypes'] })
 
       reset()
       onClose()

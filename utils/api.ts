@@ -5,11 +5,13 @@ import {
   CreateEmployeeType,
   CreateEmployeeTypeType,
   CreateHolidayType,
+  CreateLeaveTypeType,
   GetDepartmentType,
   GetDesignationType,
   GetEmployeeType,
   GetEmployeeTypeType,
   GetHolidayType,
+  GetLeaveTypeType,
   GetWeekendType,
   SignInRequest,
   SignInResponse,
@@ -308,6 +310,60 @@ export async function editHoliday(
 export async function deleteHoliday(id: number, token: string) {
   return fetchApi<{ id: number }>({
     url: `api/holidays/delete/${id}`,
+    method: 'DELETE',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+//leave type
+export async function getAllLeaveTypes(token: string) {
+  return fetchApi<GetLeaveTypeType[]>({
+    url: 'api/leaveTypes/getall',
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function createLeaveType(
+  data: CreateLeaveTypeType,
+  token: string
+) {
+  return fetchApi<CreateLeaveTypeType>({
+    url: 'api/leaveTypes/create',
+    method: 'POST',
+    body: data,
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function editLeaveType(
+  id: number,
+  data: GetLeaveTypeType,
+  token: string
+) {
+  return fetchApi<GetLeaveTypeType>({
+    url: `api/leaveTypes/edit/${id}`,
+    method: 'PATCH',
+    body: data,
+    headers: {
+      Authorization: `${token}`,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function deleteLeaveType(id: number, token: string) {
+  return fetchApi<{ id: number }>({
+    url: `api/leaveTypes/delete/${id}`,
     method: 'DELETE',
     headers: {
       Authorization: token,

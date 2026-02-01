@@ -63,6 +63,10 @@ export function DashboardSidebar() {
           title: 'Holidays',
           href: '/dashboard/setup/holidays',
         },
+        {
+          title: 'Leave Types',
+          href: '/dashboard/setup/leaveTypes',
+        },
       ],
     },
     {
