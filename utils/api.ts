@@ -6,12 +6,14 @@ import {
   CreateEmployeeTypeType,
   CreateHolidayType,
   CreateLeaveTypeType,
+  CreateOfficeTimingType,
   GetDepartmentType,
   GetDesignationType,
   GetEmployeeType,
   GetEmployeeTypeType,
   GetHolidayType,
   GetLeaveTypeType,
+  GetOfficeTimingType,
   GetWeekendType,
   SignInRequest,
   SignInResponse,
@@ -194,6 +196,60 @@ export async function getAllWeekends(token: string) {
   return fetchApi<GetWeekendType[]>({
     url: 'api/weekends/getall',
     method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+//office timing weekends
+export async function getAllOfficeTimingWeekends(token: string) {
+  return fetchApi<GetOfficeTimingType[]>({
+    url: 'api/officeTimings/getall',
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function createOfficeTimingWeekend(
+  data: CreateOfficeTimingType,
+  token: string
+) {
+  return fetchApi<CreateOfficeTimingType>({
+    url: 'api/officeTimings/create',
+    method: 'POST',
+    body: data,
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function editOfficeTimingWeekend(
+  id: number,
+  data: GetOfficeTimingType,
+  token: string
+) {
+  return fetchApi<GetOfficeTimingType>({
+    url: `api/officeTimings/edit/${id}`,
+    method: 'PATCH',
+    body: data,
+    headers: {
+      Authorization: `${token}`,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function deleteOfficeTimingWeekend(id: number, token: string) {
+  return fetchApi<{ id: number }>({
+    url: `api/officeTimings/delete/${id}`,
+    method: 'DELETE',
     headers: {
       Authorization: token,
       'Content-Type': 'application/json',

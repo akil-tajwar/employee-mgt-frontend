@@ -120,6 +120,27 @@ export const weekendSchema = z.object({
 })
 export type GetWeekendType = z.infer<typeof weekendSchema>
 
+//office timing weekend
+export const officeTimingSchema = z.object({
+  officeTiminId: z.number().optional(),
+  officeTimingId: z.number().optional(),
+  startTime: z.string(),
+  endTime: z.string(),
+  weekendIds: z.array(z.number()),
+  createdBy: z.number(),
+  createdAt: z.number().optional().nullable(),
+  updatedBy: z.number().optional().nullable(),
+  updatedAt: z.number().optional().nullable(),
+})
+export type CreateOfficeTimingType = z.infer<
+  typeof officeTimingSchema
+>
+export type GetOfficeTimingType = z.infer<
+  typeof officeTimingSchema
+> & {
+  weekends: string[]
+}
+
 //holiday
 export const holidaySchema = z.object({
   holidayId: z.number().optional(),
@@ -140,6 +161,7 @@ export type GetHolidayType = z.infer<typeof holidaySchema>
 export const leaveTypeSchema = z.object({
   leaveTypeId: z.number().optional(),
   leaveTypeName: z.string(),
+  totalLeaves: z.number(),
   createdBy: z.number(),
   createdAt: z.number().optional().nullable(),
   updatedBy: z.number().optional().nullable(),

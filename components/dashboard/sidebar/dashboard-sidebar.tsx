@@ -65,7 +65,11 @@ export function DashboardSidebar() {
         },
         {
           title: 'Leave Types',
-          href: '/dashboard/setup/leaveTypes',
+          href: '/dashboard/setup/leave-types',
+        },
+        {
+          title: 'Office Timing & Weekends',
+          href: '/dashboard/setup/office-timing-and-weekends',
         },
       ],
     },
