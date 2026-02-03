@@ -2,6 +2,7 @@ import { fetchApi, fetchApiWithFile } from '@/utils/http'
 import {
   CreateDepartmentType,
   CreateDesignationType,
+  CreateEmployeeAttendanceType,
   CreateEmployeeType,
   CreateEmployeeTypeType,
   CreateHolidayType,
@@ -9,6 +10,7 @@ import {
   CreateOfficeTimingType,
   GetDepartmentType,
   GetDesignationType,
+  GetEmployeeAttendanceType,
   GetEmployeeType,
   GetEmployeeTypeType,
   GetHolidayType,
@@ -420,6 +422,59 @@ export async function editLeaveType(
 export async function deleteLeaveType(id: number, token: string) {
   return fetchApi<{ id: number }>({
     url: `api/leaveTypes/delete/${id}`,
+    method: 'DELETE',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function getAllEmployeeAttendances(token: string) {
+  return fetchApi<GetEmployeeAttendanceType[]>({
+    url: 'api/employeeAttendances/getall',
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function createEmployeeAttendance(
+  data: CreateEmployeeAttendanceType,
+  token: string
+) {
+  return fetchApi<CreateEmployeeAttendanceType>({
+    url: 'api/employeeAttendances/create',
+    method: 'POST',
+    body: data,
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function editEmployeeAttendance(
+  id: number,
+  data: GetEmployeeAttendanceType,
+  token: string
+) {
+  return fetchApi<GetEmployeeAttendanceType>({
+    url: `api/employeeAttendances/edit/${id}`,
+    method: 'PATCH',
+    body: data,
+    headers: {
+      Authorization: `${token}`,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function deleteEmployeeAttendance(id: number, token: string) {
+  return fetchApi<{ id: number }>({
+    url: `api/employeeAttendances/delete/${id}`,
     method: 'DELETE',
     headers: {
       Authorization: token,

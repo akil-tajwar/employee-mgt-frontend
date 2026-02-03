@@ -82,6 +82,10 @@ export function DashboardSidebar() {
           title: 'Create Employee',
           href: '/dashboard/employee-management/create-employee',
         },
+        {
+          title: 'Employee Attendance',
+          href: '/dashboard/employee-management/employee-attendances',
+        },
       ],
     },
     {

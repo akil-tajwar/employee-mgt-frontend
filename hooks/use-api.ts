@@ -6,6 +6,7 @@ import {
   createDepartment,
   createDesignation,
   createEmployee,
+  createEmployeeAttendance,
   createEmployeeType,
   createHoliday,
   createLeaveType,
@@ -13,6 +14,7 @@ import {
   deleteDepartment,
   deleteDesignation,
   deleteEmployee,
+  deleteEmployeeAttendance,
   deleteEmployeeType,
   deleteHoliday,
   deleteLeaveType,
@@ -20,12 +22,14 @@ import {
   editDepartment,
   editDesignation,
   editEmployee,
+  editEmployeeAttendance,
   editEmployeeType,
   editHoliday,
   editLeaveType,
   editOfficeTimingWeekend,
   getAllDepartments,
   getAllDesignations,
+  getAllEmployeeAttendances,
   getAllEmployees,
   getAllEmployeeTypes,
   getAllHolidays,
@@ -37,10 +41,12 @@ import {
 import {
   CreateDepartmentType,
   CreateDesignationType,
+  CreateEmployeeAttendanceType,
   CreateEmployeeTypeType,
   CreateHolidayType,
   CreateLeaveTypeType,
   CreateOfficeTimingType,
+  GetEmployeeAttendanceType,
   GetOfficeTimingType,
 } from '@/utils/type'
 
@@ -914,6 +920,125 @@ export const useDeleteLeaveType = ({
         description: 'leave type is deleted successfully.',
       })
       queryClient.invalidateQueries({ queryKey: ['leaveTypes'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error sending delete request:', error)
+    },
+  })
+
+  return mutation
+}
+
+//employee attendances
+export const useGetEmployeeAttendances = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['employeeAttendances'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getAllEmployeeAttendances(token)
+    },
+    enabled: !!token,
+    select: (data) => data,
+  })
+}
+
+export const useAddEmployeeAttendance = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (data: CreateEmployeeAttendanceType) => {
+      return createEmployeeAttendance(data, token)
+    },
+    onSuccess: (data) => {
+      console.log('employee attendance added successfully:', data)
+      queryClient.invalidateQueries({ queryKey: ['employeeAttendances'] })
+      // Reset form fields after success
+      reset()
+
+      // Close the form modal
+      onClose()
+    },
+    onError: (error) => {
+      // Handle error
+      console.error('Error adding employee attendance:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useUpdateEmployeeAttendance = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: GetEmployeeAttendanceType }) => {
+      return editEmployeeAttendance(id, data, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'employee attendance edited successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['employeeAttendances'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error editing employee attendance:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useDeleteEmployeeAttendance = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id }: { id: number }) => {
+      return deleteEmployeeAttendance(id, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'employee attendance is deleted successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['employeeAttendances'] })
 
       reset()
       onClose()

@@ -172,3 +172,21 @@ export const leaveTypeSchema = z.object({
 })
 export type CreateLeaveTypeType = z.infer<typeof leaveTypeSchema>
 export type GetLeaveTypeType = z.infer<typeof leaveTypeSchema>
+
+export const employeeAttendanceSchema = z.object({
+  employeeAttendanceId: z.number().optional(),
+  employeeId: z.number(),
+  attendanceDate: z.string(),
+  inTime: z.string(),
+  outTime: z.string(),
+  lateInMinutes: z.number().default(0),
+  earlyOutMinutes: z.number().default(0),
+  createdBy: z.number(),
+  createdAt: z.number().optional(),
+  updatedBy: z.number().optional(),
+  updatedAt: z.number().optional(),
+})
+export type CreateEmployeeAttendanceType = z.infer<typeof employeeAttendanceSchema>
+export type GetEmployeeAttendanceType = z.infer<typeof employeeAttendanceSchema> & {
+  employeeName: string
+}

@@ -221,6 +221,7 @@ const CreateEmployee = () => {
       ...formData,
       photoUrl: null,
       cvUrl: null,
+      createdBy: userData?.userId || 0,
     }
     console.log(
       '📦 Employee Details Payload (without photo):',
@@ -825,6 +826,7 @@ const CreateEmployee = () => {
                       leave.leaveTypeId !== undefined &&
                       handleLeaveTypeToggle(leave.leaveTypeId)
                     }
+                    className='bg-white'
                   />
                   <label
                     htmlFor={`leave-${leave.leaveTypeId}`}
