@@ -42,7 +42,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Textarea } from '@/components/ui/textarea'
-import formatDate from '@/utils/formatDate'
+import { formatDate } from '@/utils/conversions'
 
 const Holidays = () => {
   useInitializeUser()

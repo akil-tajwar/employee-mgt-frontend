@@ -1,3 +1,4 @@
+import { off } from 'process'
 import { z } from 'zod'
 
 //auth + authorization + user management
@@ -105,6 +106,8 @@ export const employeeSchema = z.object({
   departmentId: z.number(),
   designationId: z.number(),
   employeeTypeId: z.number(),
+  officeTimingId: z.number(),
+  leaveTypeIds: z.array(z.number()),
   createdBy: z.number(),
   createdAt: z.number().optional().nullable(),
   updatedBy: z.number().optional().nullable(),

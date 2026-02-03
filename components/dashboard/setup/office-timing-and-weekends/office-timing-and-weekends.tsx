@@ -46,6 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { formatTime } from '@/utils/conversions'
 
 const OfficeTimingAndWeekends = () => {
   useInitializeUser()
@@ -364,10 +365,10 @@ const OfficeTimingAndWeekends = () => {
                 <TableRow key={index}>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell className="font-medium">
-                    {timing.startTime}
+                    {formatTime(timing.startTime)}
                   </TableCell>
                   <TableCell className="font-medium">
-                    {timing.endTime}
+                    {formatTime(timing.endTime)}
                   </TableCell>
                   <TableCell className="font-medium">
                     {timing.weekends?.join(', ') || 'N/A'}

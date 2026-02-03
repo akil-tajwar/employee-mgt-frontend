@@ -22,7 +22,8 @@ import {
   useGetDepartments,
   useGetDesignations,
   useGetEmployeeTypes,
-  useGetWeekends,
+  useGetLeaveTypes,
+  useGetOfficeTimingWeekends,
 } from '@/hooks/use-api'
 import type { CreateEmployeeType } from '@/utils/type'
 import { toast } from '@/hooks/use-toast'
@@ -30,24 +31,25 @@ import ExcelFileInput from '@/utils/excel-file-input'
 import { Popup } from '@/utils/popup'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
+import { formatTime } from '@/utils/conversions'
 
 const CreateEmployee = () => {
   useInitializeUser()
   const [userData] = useAtom(userDataAtom)
-  const [token] = useAtom(tokenAtom)
+  console.log("🚀 ~ CreateEmployee ~ userData:", userData)
+
   const { data: departments } = useGetDepartments()
   const { data: designations } = useGetDesignations()
   const { data: employeeTypes } = useGetEmployeeTypes()
-  const { data: weekends } = useGetWeekends()
-  console.log("🚀 ~ CreateEmployee ~ weekends:", weekends)
-  const router = useRouter()
+  const { data: leaveTypes } = useGetLeaveTypes()
+  const { data: officeTimingWeekends } = useGetOfficeTimingWeekends()
+
   const [error, setError] = useState<string | null>(null)
   const [isPopupOpen, setIsPopupOpen] = useState(false)
   const [isImportPopupOpen, setIsImportPopupOpen] = useState(false)
 
   const [employeePhotoFile, setEmployeePhotoFile] = useState<File | null>(null)
   const [cvUrl, setCvFile] = useState<File | null>(null)
-  const [selectedWeekendIds, setSelectedWeekendIds] = useState<number[]>([])
 
   const [formData, setFormData] = useState<
     Omit<
@@ -76,6 +78,8 @@ const CreateEmployee = () => {
     departmentId: 0,
     designationId: 0,
     employeeTypeId: 0,
+    leaveTypeIds: [],
+    officeTimingId: 0,
     createdBy: userData?.userId || 0,
   })
 
@@ -118,12 +122,13 @@ const CreateEmployee = () => {
     }
   }
 
-  const handleWeekendToggle = (weekendId: number) => {
-    setSelectedWeekendIds((prev) =>
-      prev.includes(weekendId)
-        ? prev.filter((id) => id !== weekendId)
-        : [...prev, weekendId]
-    )
+  const handleLeaveTypeToggle = (leaveTypeId: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      leaveTypeIds: prev.leaveTypeIds.includes(leaveTypeId)
+        ? prev.leaveTypeIds.filter((id) => id !== leaveTypeId)
+        : [...prev.leaveTypeIds, leaveTypeId],
+    }))
   }
 
   const handleSelectChange = (name: string, value: string) => {
@@ -163,11 +168,12 @@ const CreateEmployee = () => {
       departmentId: 0,
       designationId: 0,
       employeeTypeId: 0,
+      leaveTypeIds: [],
+      officeTimingId: 0,
       createdBy: userData?.userId || 0,
     })
     setEmployeePhotoFile(null)
     setCvFile(null)
-    setSelectedWeekendIds([])
     setIsPopupOpen(false)
     setError(null)
   }
@@ -187,7 +193,6 @@ const CreateEmployee = () => {
     setError(null)
     console.log('=== FORM SUBMISSION START ===')
     console.log('📋 Employee Details:', formData)
-    console.log('📅 Selected Weekend IDs:', selectedWeekendIds)
 
     // Validations
     if (!formData.fullName.trim()) return setError('Please enter full name')
@@ -212,12 +217,10 @@ const CreateEmployee = () => {
 
     const form = new FormData()
 
-    // Add employee details as JSON (excluding photo URL)
     const employeeDetailsPayload = {
       ...formData,
       photoUrl: null,
       cvUrl: null,
-      weekendIds: selectedWeekendIds,
     }
     console.log(
       '📦 Employee Details Payload (without photo):',
@@ -225,13 +228,11 @@ const CreateEmployee = () => {
     )
     form.append('employeeDetails', JSON.stringify(employeeDetailsPayload))
 
-    // Append photo only if selected
     if (employeePhotoFile) {
       form.append('photoUrl', employeePhotoFile)
       console.log(`✅ Appended photoUrl to FormData`)
     }
 
-    // Append CV only if selected
     if (cvUrl) {
       form.append('cvUrl', cvUrl)
       console.log(`✅ Appended cvUrl to FormData`)
@@ -283,7 +284,8 @@ const CreateEmployee = () => {
         DepartmentId: '',
         DesignationId: '',
         EmployeeTypeId: '',
-        WeekendIds: '',
+        LeaveTypeIds: '',
+        OfficeTimingId: '',
       },
     ]
 
@@ -309,7 +311,6 @@ const CreateEmployee = () => {
 
   const handleExcelSubmit = async (data: any[]) => {
     try {
-      // Process each row and create employee records
       const employeesToCreate = data.map((row) => ({
         fullName: row['FullName'] || '',
         email: row['Email'] || '',
@@ -335,18 +336,20 @@ const CreateEmployee = () => {
           ? Number(row['EmployeeTypeId'])
           : 0,
         createdBy: userData?.userId || 0,
-        weekendIds: row['WeekendIds']
-          ? row['WeekendIds']
+        leaveTypeIds: row['LeaveTypeIds']
+          ? row['LeaveTypeIds']
               .toString()
               .split(',')
               .map((id: string) => Number(id.trim()))
               .filter((id: number) => !isNaN(id))
           : [],
+        officeTimingId: row['OfficeTimingId']
+          ? Number(row['OfficeTimingId'])
+          : null,
       }))
 
       console.log('Employees to create:', employeesToCreate)
 
-      // Submit all employees
       for (const employee of employeesToCreate) {
         const form = new FormData()
         const employeeDetailsPayload = {
@@ -412,7 +415,7 @@ const CreateEmployee = () => {
         </div>
       </div>
       <form onSubmit={handleSubmit} className="space-y-6 py-4">
-        {/* Basic Information Section */}
+        {/* Personal Information */}
         <div className="border p-8 rounded-lg bg-slate-100">
           <h3 className="text-md font-semibold mb-4">Personal Information</h3>
           <div className="grid gap-4 md:grid-cols-2">
@@ -449,6 +452,8 @@ const CreateEmployee = () => {
             </div>
           </div>
         </div>
+
+        {/* Address */}
         <div className="border p-8 rounded-lg bg-slate-100">
           <h3 className="text-md font-semibold mb-4">Address</h3>
           <div className="grid gap-4 md:grid-cols-2">
@@ -477,6 +482,8 @@ const CreateEmployee = () => {
             </div>
           </div>
         </div>
+
+        {/* Physical Details */}
         <div className="border p-8 rounded-lg bg-slate-100">
           <h3 className="text-md font-semibold mb-4">Physical Details</h3>
           <div className="grid gap-4 md:grid-cols-2">
@@ -523,7 +530,7 @@ const CreateEmployee = () => {
           </div>
         </div>
 
-        {/* Address & Contact Information Section */}
+        {/* Emergency Contact */}
         <div className="border p-8 rounded-lg bg-slate-100">
           <h3 className="text-md font-semibold mb-4">Emergency Contact</h3>
           <div className="grid gap-4 md:grid-cols-2">
@@ -554,6 +561,7 @@ const CreateEmployee = () => {
           </div>
         </div>
 
+        {/* Contact Info */}
         <div className="border p-8 rounded-lg bg-slate-100">
           <h3 className="text-md font-semibold mb-4">Contact Info</h3>
           <div className="grid gap-4 md:grid-cols-2">
@@ -596,7 +604,7 @@ const CreateEmployee = () => {
           </div>
         </div>
 
-        {/* Employment Details Section */}
+        {/* Official Details */}
         <div className="border p-8 rounded-lg bg-slate-100">
           <h3 className="text-md font-semibold mb-4">Official</h3>
           <div className="grid gap-4 md:grid-cols-2">
@@ -734,67 +742,116 @@ const CreateEmployee = () => {
               />
             </div>
             <div className="space-y-2">
-            <Label htmlFor="cvUrl" className="text-sm">
-              Upload CV (PDF only)
-            </Label>
-            <Input
-              id="cvUrl"
-              type="file"
-              accept="application/pdf"
-              onChange={handleCvChange}
-              className="text-sm"
-            />
-            {cvUrl && (
-              <p className="text-xs text-green-600">
-                ✓ CV selected: {cvUrl.name}
-              </p>
-            )}
-          </div>
+              <Label htmlFor="cvUrl" className="text-sm">
+                Upload CV (PDF only)
+              </Label>
+              <Input
+                id="cvUrl"
+                type="file"
+                accept="application/pdf"
+                onChange={handleCvChange}
+                className="text-sm"
+              />
+              {cvUrl && (
+                <p className="text-xs text-green-600">
+                  ✓ CV selected: {cvUrl.name}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="officeTimingId">
+                Office Timing <span className="text-red-500">*</span>
+              </Label>
+              <CustomCombobox
+                items={
+                  officeTimingWeekends?.data?.map((timing) => ({
+                    id: timing.officeTimingId?.toString() || '0',
+                    name: `${formatTime(timing.startTime)} - ${formatTime(timing.endTime)}${
+                      timing.weekends?.length
+                        ? ` (Off: ${timing.weekends.join(', ')})`
+                        : ''
+                    }`,
+                  })) || []
+                }
+                value={
+                  formData.officeTimingId
+                    ? {
+                        id: formData.officeTimingId.toString(),
+                        name: (() => {
+                          const t = officeTimingWeekends?.data?.find(
+                            (t) => t.officeTimingId === formData.officeTimingId
+                          )
+                          return t
+                            ? `${formatTime(t.startTime)} - ${formatTime(t.endTime)}${
+                                t.weekends?.length
+                                  ? ` (Off: ${t.weekends.join(', ')})`
+                                  : ''
+                              }`
+                            : ''
+                        })(),
+                      }
+                    : null
+                }
+                onChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    officeTimingId: value ? Number(value.id) : 0,
+                  }))
+                }
+                placeholder="Select office timing"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Weekends Section */}
+        {/* Leave Types — multi-select checkboxes */}
         <div className="border p-8 rounded-lg bg-slate-100">
-          <h3 className="text-md font-semibold mb-4">Weekends</h3>
+          <h3 className="text-md font-semibold mb-4">Leave Types</h3>
           <div className="space-y-3">
-            <Label>Select Weekend Days</Label>
+            <Label>Select Leave Types</Label>
             <div className="grid gap-3 md:grid-cols-3">
-              {weekends?.data?.map((weekend) => (
-                  <div
-                    key={weekend.weekendId}
-                    className="flex items-center space-x-2"
-                  >
-                    <Checkbox
-                      id={`weekend-${weekend.weekendId}`}
-                      checked={weekend.weekendId !== undefined && selectedWeekendIds.includes(weekend.weekendId)}
-                      onCheckedChange={() =>
-                        weekend.weekendId !== undefined && handleWeekendToggle(weekend.weekendId)
-                      }
-                    />
+              {leaveTypes?.data?.map((leave) => (
+                <div
+                  key={leave.leaveTypeId}
+                  className="flex items-center space-x-2"
+                >
+                  <Checkbox
+                    id={`leave-${leave.leaveTypeId}`}
+                    checked={
+                      leave.leaveTypeId !== undefined &&
+                      formData.leaveTypeIds.includes(leave.leaveTypeId)
+                    }
+                    onCheckedChange={() =>
+                      leave.leaveTypeId !== undefined &&
+                      handleLeaveTypeToggle(leave.leaveTypeId)
+                    }
+                  />
                   <label
-                    htmlFor={`weekend-${weekend.weekendId}`}
+                    htmlFor={`leave-${leave.leaveTypeId}`}
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                   >
-                    {weekend.day}
+                    {leave.leaveTypeName}
+                    <span className="text-gray-500 ml-1">
+                      ({leave.totalLeaves} days)
+                    </span>
                   </label>
                 </div>
               ))}
             </div>
-            {selectedWeekendIds.length > 0 && (
+            {formData.leaveTypeIds.length > 0 && (
               <p className="text-xs text-green-600">
-                ✓ {selectedWeekendIds.length} weekend(s) selected
+                ✓ {formData.leaveTypeIds.length} leave type(s) selected
               </p>
             )}
           </div>
         </div>
 
+        {/* Salary */}
         <div className="border p-8 rounded-lg bg-slate-100">
           <h3 className="text-md font-semibold mb-4">Salary</h3>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="basicSalary">
-                Basic Salary
-              </Label>
+              <Label htmlFor="basicSalary">Basic Salary</Label>
               <Input
                 id="basicSalary"
                 name="basicSalary"
@@ -837,6 +894,7 @@ const CreateEmployee = () => {
         </div>
       </form>
 
+      {/* Bulk Import Popup */}
       <Popup
         isOpen={isImportPopupOpen}
         onClose={() => setIsImportPopupOpen(false)}
@@ -911,8 +969,11 @@ const CreateEmployee = () => {
                 <strong>EmployeeTypeId</strong> - Employee Type ID (required)
               </li>
               <li>
-                <strong>WeekendIds</strong> - Comma-separated weekend IDs (e.g.,
-                &quot;1,2&quot; for multiple weekends)
+                <strong>LeaveTypeIds</strong> - Comma-separated leave type IDs
+                (e.g., &quot;1,2,3&quot;) (optional)
+              </li>
+              <li>
+                <strong>OfficeTimingId</strong> - Office timing ID (optional)
               </li>
             </ul>
             <p className="text-sm text-gray-700 mt-3">
