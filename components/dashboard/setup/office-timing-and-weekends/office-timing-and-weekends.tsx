@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -21,16 +22,20 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
-import { ArrowUpDown, Search, Calendar, Edit2, Trash2 } from 'lucide-react'
+import { ArrowUpDown, Search, Clock, Edit2, Trash2 } from 'lucide-react'
 import { Popup } from '@/utils/popup'
-import type { CreateHolidayType, GetHolidayType } from '@/utils/type'
+import type {
+  CreateOfficeTimingType,
+  GetOfficeTimingType,
+} from '@/utils/type'
 import { useInitializeUser, userDataAtom } from '@/utils/user'
 import { useAtom } from 'jotai'
 import {
-  useAddHoliday,
-  useDeleteHoliday,
-  useGetHolidays,
-  useUpdateHoliday,
+  useAddOfficeTimingWeekend,
+  useDeleteOfficeTimingWeekend,
+  useGetOfficeTimingWeekends,
+  useUpdateOfficeTimingWeekend,
+  useGetWeekends,
 } from '@/hooks/use-api'
 import {
   AlertDialog,
@@ -41,44 +46,38 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Textarea } from '@/components/ui/textarea'
-import { formatDate } from '@/utils/conversions'
+import { formatTime } from '@/utils/conversions'
 
-const Holidays = () => {
+const OfficeTimingAndWeekends = () => {
   useInitializeUser()
   const [userData] = useAtom(userDataAtom)
 
-  const { data: holidays } = useGetHolidays()
-  console.log('🚀 ~ Holidays ~ holidays:', holidays)
+  const { data: officeTimings } = useGetOfficeTimingWeekends()
+  const { data: weekends } = useGetWeekends()
+  console.log('🚀 ~ OfficeTimingAndWeekends ~ officeTimings:', officeTimings)
+  console.log('🚀 ~ OfficeTimingAndWeekends ~ weekends:', weekends)
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [holidaysPerPage] = useState(10)
+  const [timingsPerPage] = useState(10)
   const [sortColumn, setSortColumn] =
-    useState<keyof GetHolidayType>('holidayName')
+    useState<keyof GetOfficeTimingType>('startTime')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [searchTerm, setSearchTerm] = useState('')
 
   const [isPopupOpen, setIsPopupOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
-  const [editingHolidayId, setEditingHolidayId] = useState<number | null>(null)
+  const [editingTimingId, setEditingTimingId] = useState<number | null>(null)
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [deletingHolidayId, setDeletingHolidayId] = useState<number | null>(
-    null
-  )
+  const [deletingTimingId, setDeletingTimingId] = useState<number | null>(null)
 
-  const getTodayDate = () => {
-    const today = new Date()
-    return today.toISOString().split('T')[0]
-  }
+  const [selectedWeekendIds, setSelectedWeekendIds] = useState<number[]>([])
 
-  const [formData, setFormData] = useState<CreateHolidayType>({
-    holidayName: '',
-    startDate: getTodayDate(),
-    endDate: getTodayDate(),
-    noOfDays: 1,
-    description: '',
+  const [formData, setFormData] = useState<CreateOfficeTimingType>({
+    startTime: '09:00',
+    endTime: '17:00',
+    weekendIds: [],
     createdBy: userData?.userId || 0,
   })
 
@@ -88,37 +87,27 @@ const Holidays = () => {
     const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'noOfDays' ? Number(value) : value,
+      [name]: value,
     }))
   }
 
-  // Calculate number of days when dates change
-  useEffect(() => {
-    if (formData.startDate && formData.endDate) {
-      const start = new Date(formData.startDate)
-      const end = new Date(formData.endDate)
-      const diffTime = end.getTime() - start.getTime()
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 // +1 to include both start and end dates
-
-      if (diffDays > 0) {
-        setFormData((prev) => ({
-          ...prev,
-          noOfDays: diffDays,
-        }))
-      }
-    }
-  }, [formData.startDate, formData.endDate])
+  const handleWeekendToggle = (weekendId: number) => {
+    setSelectedWeekendIds((prev) =>
+      prev.includes(weekendId)
+        ? prev.filter((id) => id !== weekendId)
+        : [...prev, weekendId]
+    )
+  }
 
   const resetForm = useCallback(() => {
     setFormData({
-      holidayName: '',
-      startDate: getTodayDate(),
-      endDate: getTodayDate(),
-      noOfDays: 1,
-      description: '',
+      startTime: '09:00',
+      endTime: '17:00',
+      weekendIds: [],
       createdBy: userData?.userId || 0,
     })
-    setEditingHolidayId(null)
+    setSelectedWeekendIds([])
+    setEditingTimingId(null)
     setIsEditMode(false)
     setIsPopupOpen(false)
     setError(null)
@@ -130,22 +119,22 @@ const Holidays = () => {
     resetForm()
   }, [resetForm])
 
-  const addMutation = useAddHoliday({
+  const addMutation = useAddOfficeTimingWeekend({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const updateMutation = useUpdateHoliday({
+  const updateMutation = useUpdateOfficeTimingWeekend({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const deleteMutation = useDeleteHoliday({
+  const deleteMutation = useDeleteOfficeTimingWeekend({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const handleSort = (column: keyof GetHolidayType) => {
+  const handleSort = (column: keyof GetOfficeTimingType) => {
     if (column === sortColumn) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
@@ -154,16 +143,17 @@ const Holidays = () => {
     }
   }
 
-  const filteredHolidays = useMemo(() => {
-    if (!holidays?.data || !Array.isArray(holidays.data)) return []
-    return holidays.data.filter((holiday) =>
-      holiday.holidayName?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredTimings = useMemo(() => {
+    if (!officeTimings?.data) return []
+    return officeTimings.data?.filter(
+      (timing) =>
+        timing.startTime?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        timing.endTime?.toLowerCase().includes(searchTerm.toLowerCase())
     )
-  }, [holidays?.data, searchTerm])
+  }, [officeTimings?.data, searchTerm])
 
-  const sortedHolidays = useMemo(() => {
-    if (!Array.isArray(filteredHolidays)) return []
-    return [...filteredHolidays].sort((a, b) => {
+  const sortedTimings = useMemo(() => {
+    return [...filteredTimings].sort((a, b) => {
       const aValue = a[sortColumn] ?? ''
       const bValue = b[sortColumn] ?? ''
 
@@ -173,22 +163,16 @@ const Holidays = () => {
           : bValue.localeCompare(aValue)
       }
 
-      return sortDirection === 'asc'
-        ? aValue > bValue
-          ? 1
-          : -1
-        : bValue > aValue
-          ? 1
-          : -1
+      return 0
     })
-  }, [filteredHolidays, sortColumn, sortDirection])
+  }, [filteredTimings, sortColumn, sortDirection])
 
-  const paginatedHolidays = useMemo(() => {
-    const startIndex = (currentPage - 1) * holidaysPerPage
-    return sortedHolidays.slice(startIndex, startIndex + holidaysPerPage)
-  }, [sortedHolidays, currentPage, holidaysPerPage])
+  const paginatedTimings = useMemo(() => {
+    const startIndex = (currentPage - 1) * timingsPerPage
+    return sortedTimings.slice(startIndex, startIndex + timingsPerPage)
+  }, [sortedTimings, currentPage, timingsPerPage])
 
-  const totalPages = Math.ceil(sortedHolidays.length / holidaysPerPage)
+  const totalPages = Math.ceil(sortedTimings.length / timingsPerPage)
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -196,42 +180,58 @@ const Holidays = () => {
 
       setError(null)
 
+      // Validate weekend selection
+      if (selectedWeekendIds.length === 0) {
+        setError('Please select at least one weekend day')
+        return
+      }
+
       try {
-        const submitData: CreateHolidayType = {
-          holidayName: formData.holidayName,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          noOfDays: formData.noOfDays,
-          description: formData.description,
-          createdBy: formData.createdBy,
-        }
+        console.log(
+          'Submit form - isEditMode:',
+          isEditMode,
+          'editingTimingId:',
+          editingTimingId
+        )
 
-        if (isEditMode) {
-          submitData.updatedBy = userData?.userId || 0
-          submitData.updatedAt = Date.now()
-        } else {
-          submitData.createdBy = userData?.userId || 0
-        }
+        if (isEditMode && editingTimingId) {
+          // For update, send updatedBy
+          const updateData: any = {
+            startTime: formData.startTime,
+            endTime: formData.endTime,
+            weekendIds: selectedWeekendIds,
+            updatedBy: userData?.userId || 0,
+          }
 
-        if (isEditMode && editingHolidayId) {
+          console.log('Calling UPDATE mutation with data:', updateData)
           updateMutation.mutate({
-            id: editingHolidayId,
-            data: submitData,
+            id: editingTimingId,
+            data: updateData,
           })
-          console.log('update', isEditMode, editingHolidayId)
+          console.log('update', isEditMode, editingTimingId)
         } else {
-          addMutation.mutate(submitData)
+          // For create, send createdBy
+          const createData: CreateOfficeTimingType = {
+            startTime: formData.startTime,
+            endTime: formData.endTime,
+            weekendIds: selectedWeekendIds,
+            createdBy: userData?.userId || 0,
+          }
+
+          console.log('Calling CREATE mutation with data:', createData)
+          addMutation.mutate(createData)
           console.log('create')
         }
       } catch (err) {
-        setError('Failed to save holiday')
+        setError('Failed to save office timing')
         console.error(err)
       }
     },
     [
       formData,
+      selectedWeekendIds,
       isEditMode,
-      editingHolidayId,
+      editingTimingId,
       addMutation,
       updateMutation,
       userData,
@@ -240,21 +240,55 @@ const Holidays = () => {
 
   useEffect(() => {
     if (addMutation.error || updateMutation.error) {
-      setError('Error saving holiday')
+      setError('Error saving office timing')
     }
   }, [addMutation.error, updateMutation.error])
 
-  const handleEditClick = (holiday: any) => {
+  // Set default weekends (Friday and Saturday) when weekends data is loaded
+  useEffect(() => {
+    if (
+      weekends?.data &&
+      selectedWeekendIds.length === 0 &&
+      !isEditMode &&
+      isPopupOpen
+    ) {
+      const fridayWeekend = weekends.data.find(
+        (w) => w.day?.toLowerCase() === 'friday'
+      )
+      const saturdayWeekend = weekends.data.find(
+        (w) => w.day?.toLowerCase() === 'saturday'
+      )
+
+      const defaultWeekendIds: number[] = []
+      if (fridayWeekend?.weekendId !== undefined) {
+        defaultWeekendIds.push(fridayWeekend.weekendId)
+      }
+      if (saturdayWeekend?.weekendId !== undefined) {
+        defaultWeekendIds.push(saturdayWeekend.weekendId)
+      }
+
+      if (defaultWeekendIds.length > 0) {
+        setSelectedWeekendIds(defaultWeekendIds)
+      }
+    }
+  }, [weekends?.data, isEditMode, selectedWeekendIds.length, isPopupOpen])
+
+  const handleEditClick = (timing: any) => {
+    console.log('Edit clicked for timing:', timing)
+    console.log(
+      'Setting isEditMode to true and editingTimingId to:',
+      timing.officeTimingId
+    )
+
+    setIsEditMode(true)
+    setEditingTimingId(timing.officeTimingId || null)
+    setSelectedWeekendIds(timing.weekendIds || [])
     setFormData({
-      holidayName: holiday.holidayName,
-      startDate: holiday.startDate,
-      endDate: holiday.endDate,
-      noOfDays: holiday.noOfDays,
-      description: holiday.description || '',
+      startTime: timing.startTime,
+      endTime: timing.endTime,
+      weekendIds: timing.weekendIds || [],
       createdBy: userData?.userId || 0,
     })
-    setEditingHolidayId(holiday.holidayId)
-    setIsEditMode(true)
     setIsPopupOpen(true)
   }
 
@@ -263,15 +297,15 @@ const Holidays = () => {
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2 mb-4">
           <div className="bg-amber-100 p-2 rounded-md">
-            <Calendar className="text-amber-600" />
+            <Clock className="text-amber-600" />
           </div>
-          <h2 className="text-lg font-semibold">Holidays</h2>
+          <h2 className="text-lg font-semibold">Office Timing & Weekends</h2>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Search holidays..."
+              placeholder="Search timings..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-64"
@@ -292,70 +326,60 @@ const Holidays = () => {
             <TableRow>
               <TableHead>Sl No.</TableHead>
               <TableHead
-                onClick={() => handleSort('holidayName')}
+                onClick={() => handleSort('startTime')}
                 className="cursor-pointer"
               >
-                Holiday Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Start Time <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
-                onClick={() => handleSort('startDate')}
+                onClick={() => handleSort('endTime')}
                 className="cursor-pointer"
               >
-                Start Date <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                End Time <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
-              <TableHead
-                onClick={() => handleSort('endDate')}
-                className="cursor-pointer"
-              >
-                End Date <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-              </TableHead>
-              <TableHead
-                onClick={() => handleSort('noOfDays')}
-                className="cursor-pointer"
-              >
-                No. of Days <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-              </TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead>Weekends</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!holidays || holidays.data === undefined ? (
+            {!officeTimings || officeTimings.data === undefined ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-4">
-                  Loading holidays...
+                <TableCell colSpan={5} className="text-center py-4">
+                  Loading office timings...
                 </TableCell>
               </TableRow>
-            ) : !holidays.data || holidays.data.length === 0 ? (
+            ) : !officeTimings.data || officeTimings.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-4">
-                  No holidays found
+                <TableCell colSpan={5} className="text-center py-4">
+                  No office timings found
                 </TableCell>
               </TableRow>
-            ) : paginatedHolidays.length === 0 ? (
+            ) : paginatedTimings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-4">
-                  No holidays match your search
+                <TableCell colSpan={5} className="text-center py-4">
+                  No office timings match your search
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedHolidays.map((holiday: any, index) => (
+              paginatedTimings.map((timing, index) => (
                 <TableRow key={index}>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell className="font-medium">
-                    {holiday.holidayName}
+                    {formatTime(timing.startTime)}
                   </TableCell>
-                  <TableCell>{formatDate(holiday.startDate)}</TableCell>
-                  <TableCell>{formatDate(holiday.endDate)}</TableCell>
-                  <TableCell>{holiday.noOfDays}</TableCell>
-                  <TableCell>{holiday.description || '-'}</TableCell>
+                  <TableCell className="font-medium">
+                    {formatTime(timing.endTime)}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {timing.weekends?.join(', ') || 'N/A'}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
                         className="text-amber-600 hover:text-amber-700"
-                        onClick={() => handleEditClick(holiday)}
+                        onClick={() => handleEditClick(timing)}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -364,7 +388,12 @@ const Holidays = () => {
                         size="sm"
                         className="text-red-600 hover:text-red-700"
                         onClick={() => {
-                          setDeletingHolidayId(holiday.holidayId)
+                          console.log(
+                            'Delete button clicked for timing:',
+                            timing
+                          )
+                          console.log('Using timing ID:', timing.officeTimingId)
+                          setDeletingTimingId(timing.officeTimingId || null)
                           setIsDeleteDialogOpen(true)
                         }}
                       >
@@ -379,7 +408,7 @@ const Holidays = () => {
         </Table>
       </div>
 
-      {sortedHolidays.length > 0 && (
+      {sortedTimings.length > 0 && (
         <div className="mt-4">
           <Pagination>
             <PaginationContent>
@@ -444,76 +473,78 @@ const Holidays = () => {
       <Popup
         isOpen={isPopupOpen}
         onClose={closePopup}
-        title={isEditMode ? 'Edit Holiday' : 'Add Holiday'}
+        title={isEditMode ? 'Edit Office Timing' : 'Add Office Timing'}
         size="sm:max-w-md"
       >
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="holidayName">
-                Holiday Name <span className="text-red-500">*</span>
+              <Label htmlFor="startTime">
+                Start Time <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="holidayName"
-                name="holidayName"
-                value={formData.holidayName}
+                id="startTime"
+                name="startTime"
+                type="time"
+                value={formData.startTime}
                 onChange={handleInputChange}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="startDate">
-                Start Date <span className="text-red-500">*</span>
+              <Label htmlFor="endTime">
+                End Time <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="startDate"
-                name="startDate"
-                type="date"
-                value={formData.startDate}
+                id="endTime"
+                name="endTime"
+                type="time"
+                value={formData.endTime}
                 onChange={handleInputChange}
                 required
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="endDate">
-                End Date <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="endDate"
-                name="endDate"
-                type="date"
-                value={formData.endDate}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="noOfDays">
-                Number of Days <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="noOfDays"
-                name="noOfDays"
-                type="number"
-                min="1"
-                value={formData.noOfDays}
-                readOnly
-                className="bg-gray-50 cursor-not-allowed"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={formData.description || ''}
-                onChange={handleInputChange}
-                rows={3}
-              />
+            {/* Weekends Section */}
+            <div>
+              <h3 className="text-md font-semibold mb-4">Weekends</h3>
+              <div className="space-y-3">
+                <Label>
+                  Select Weekend Days <span className="text-red-500">*</span>
+                </Label>
+                <div className="grid gap-3 md:grid-cols-3">
+                  {weekends?.data?.map((weekend) => (
+                    <div
+                      key={weekend.weekendId}
+                      className="flex items-center space-x-2"
+                    >
+                      <Checkbox
+                        id={`weekend-${weekend.weekendId}`}
+                        checked={
+                          weekend.weekendId !== undefined &&
+                          selectedWeekendIds.includes(weekend.weekendId)
+                        }
+                        onCheckedChange={() =>
+                          weekend.weekendId !== undefined &&
+                          handleWeekendToggle(weekend.weekendId)
+                        }
+                      />
+                      <label
+                        htmlFor={`weekend-${weekend.weekendId}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {weekend.day}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                {selectedWeekendIds.length > 0 && (
+                  <p className="text-xs text-green-600">
+                    ✓ {selectedWeekendIds.length} weekend(s) selected
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -545,10 +576,10 @@ const Holidays = () => {
       >
         <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Holiday</AlertDialogTitle>
+            <AlertDialogTitle>Delete Office Timing</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this holiday? This action cannot
-              be undone.
+              Are you sure you want to delete this office timing? This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex justify-end gap-2 mt-4">
@@ -557,8 +588,11 @@ const Holidays = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (deletingHolidayId) {
-                  deleteMutation.mutate({ id: deletingHolidayId })
+                if (deletingTimingId) {
+                  console.log('Deleting timing with ID:', deletingTimingId)
+                  deleteMutation.mutate({ id: deletingTimingId })
+                } else {
+                  console.error('No timing ID to delete')
                 }
                 setIsDeleteDialogOpen(false)
               }}
@@ -573,4 +607,4 @@ const Holidays = () => {
   )
 }
 
-export default Holidays
+export default OfficeTimingAndWeekends

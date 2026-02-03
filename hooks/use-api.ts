@@ -6,31 +6,49 @@ import {
   createDepartment,
   createDesignation,
   createEmployee,
+  createEmployeeAttendance,
   createEmployeeType,
   createHoliday,
   createLeaveType,
+  createOfficeTimingWeekend,
   deleteDepartment,
   deleteDesignation,
   deleteEmployee,
+  deleteEmployeeAttendance,
   deleteEmployeeType,
   deleteHoliday,
   deleteLeaveType,
+  deleteOfficeTimingWeekend,
   editDepartment,
   editDesignation,
   editEmployee,
+  editEmployeeAttendance,
   editEmployeeType,
   editHoliday,
   editLeaveType,
+  editOfficeTimingWeekend,
   getAllDepartments,
   getAllDesignations,
+  getAllEmployeeAttendances,
   getAllEmployees,
   getAllEmployeeTypes,
   getAllHolidays,
   getAllLeaveTypes,
+  getAllOfficeTimingWeekends,
   getAllWeekends,
   getEmployeeById,
 } from '@/utils/api'
-import { CreateDepartmentType, CreateDesignationType, CreateEmployeeTypeType, CreateHolidayType, CreateLeaveTypeType } from '@/utils/type'
+import {
+  CreateDepartmentType,
+  CreateDesignationType,
+  CreateEmployeeAttendanceType,
+  CreateEmployeeTypeType,
+  CreateHolidayType,
+  CreateLeaveTypeType,
+  CreateOfficeTimingType,
+  GetEmployeeAttendanceType,
+  GetOfficeTimingType,
+} from '@/utils/type'
 
 //departments
 export const useGetDepartments = () => {
@@ -337,7 +355,13 @@ export const useUpdateEmployeeType = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: CreateEmployeeTypeType }) => {
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number
+      data: CreateEmployeeTypeType
+    }) => {
       return editEmployeeType(id, data, token)
     },
     onSuccess: () => {
@@ -408,6 +432,132 @@ export const useGetWeekends = () => {
     enabled: !!token,
     select: (data) => data,
   })
+}
+
+//office timing weekends
+export const useGetOfficeTimingWeekends = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['officeTimings'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getAllOfficeTimingWeekends(token)
+    },
+    enabled: !!token,
+    select: (data) => data,
+  })
+}
+
+export const useAddOfficeTimingWeekend = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (data: CreateOfficeTimingType) => {
+      return createOfficeTimingWeekend(data, token)
+    },
+    onSuccess: (data) => {
+      console.log('office timing weekend added successfully:', data)
+      queryClient.invalidateQueries({ queryKey: ['officeTimings'] })
+
+      // Reset form fields after success
+      reset()
+
+      // Close the form modal
+      onClose()
+    },
+    onError: (error) => {
+      // Handle error
+      console.error('Error adding office timing:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useUpdateOfficeTimingWeekend = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number
+      data: GetOfficeTimingType
+    }) => {
+      return editOfficeTimingWeekend(id, data, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'office timing is edited successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['officeTimings'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error editing office timing:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useDeleteOfficeTimingWeekend = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id }: { id: number }) => {
+      return deleteOfficeTimingWeekend(id, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'office timing is deleted successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['officeTimings'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error sending delete request:', error)
+    },
+  })
+
+  return mutation
 }
 
 //employee
@@ -733,7 +883,7 @@ export const useUpdateLeaveType = ({
     onSuccess: () => {
       toast({
         title: 'Success!',
-        description: 'eave type edited successfully.',
+        description: 'leave type edited successfully.',
       })
       queryClient.invalidateQueries({ queryKey: ['leaveTypes'] })
 
@@ -770,6 +920,125 @@ export const useDeleteLeaveType = ({
         description: 'leave type is deleted successfully.',
       })
       queryClient.invalidateQueries({ queryKey: ['leaveTypes'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error sending delete request:', error)
+    },
+  })
+
+  return mutation
+}
+
+//employee attendances
+export const useGetEmployeeAttendances = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['employeeAttendances'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getAllEmployeeAttendances(token)
+    },
+    enabled: !!token,
+    select: (data) => data,
+  })
+}
+
+export const useAddEmployeeAttendance = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (data: CreateEmployeeAttendanceType) => {
+      return createEmployeeAttendance(data, token)
+    },
+    onSuccess: (data) => {
+      console.log('employee attendance added successfully:', data)
+      queryClient.invalidateQueries({ queryKey: ['employeeAttendances'] })
+      // Reset form fields after success
+      reset()
+
+      // Close the form modal
+      onClose()
+    },
+    onError: (error) => {
+      // Handle error
+      console.error('Error adding employee attendance:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useUpdateEmployeeAttendance = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: GetEmployeeAttendanceType }) => {
+      return editEmployeeAttendance(id, data, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'employee attendance edited successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['employeeAttendances'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error editing employee attendance:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useDeleteEmployeeAttendance = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id }: { id: number }) => {
+      return deleteEmployeeAttendance(id, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'employee attendance is deleted successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['employeeAttendances'] })
 
       reset()
       onClose()

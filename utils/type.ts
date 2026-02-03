@@ -1,3 +1,4 @@
+import { off } from 'process'
 import { z } from 'zod'
 
 //auth + authorization + user management
@@ -105,6 +106,8 @@ export const employeeSchema = z.object({
   departmentId: z.number(),
   designationId: z.number(),
   employeeTypeId: z.number(),
+  officeTimingId: z.number(),
+  leaveTypeIds: z.array(z.number()),
   createdBy: z.number(),
   createdAt: z.number().optional().nullable(),
   updatedBy: z.number().optional().nullable(),
@@ -119,6 +122,27 @@ export const weekendSchema = z.object({
   day: z.string(),
 })
 export type GetWeekendType = z.infer<typeof weekendSchema>
+
+//office timing weekend
+export const officeTimingSchema = z.object({
+  officeTiminId: z.number().optional(),
+  officeTimingId: z.number().optional(),
+  startTime: z.string(),
+  endTime: z.string(),
+  weekendIds: z.array(z.number()),
+  createdBy: z.number(),
+  createdAt: z.number().optional().nullable(),
+  updatedBy: z.number().optional().nullable(),
+  updatedAt: z.number().optional().nullable(),
+})
+export type CreateOfficeTimingType = z.infer<
+  typeof officeTimingSchema
+>
+export type GetOfficeTimingType = z.infer<
+  typeof officeTimingSchema
+> & {
+  weekends: string[]
+}
 
 //holiday
 export const holidaySchema = z.object({
@@ -140,6 +164,7 @@ export type GetHolidayType = z.infer<typeof holidaySchema>
 export const leaveTypeSchema = z.object({
   leaveTypeId: z.number().optional(),
   leaveTypeName: z.string(),
+  totalLeaves: z.number(),
   createdBy: z.number(),
   createdAt: z.number().optional().nullable(),
   updatedBy: z.number().optional().nullable(),
@@ -147,3 +172,21 @@ export const leaveTypeSchema = z.object({
 })
 export type CreateLeaveTypeType = z.infer<typeof leaveTypeSchema>
 export type GetLeaveTypeType = z.infer<typeof leaveTypeSchema>
+
+export const employeeAttendanceSchema = z.object({
+  employeeAttendanceId: z.number().optional(),
+  employeeId: z.number(),
+  attendanceDate: z.string(),
+  inTime: z.string(),
+  outTime: z.string(),
+  lateInMinutes: z.number().default(0),
+  earlyOutMinutes: z.number().default(0),
+  createdBy: z.number(),
+  createdAt: z.number().optional(),
+  updatedBy: z.number().optional(),
+  updatedAt: z.number().optional(),
+})
+export type CreateEmployeeAttendanceType = z.infer<typeof employeeAttendanceSchema>
+export type GetEmployeeAttendanceType = z.infer<typeof employeeAttendanceSchema> & {
+  employeeName: string
+}

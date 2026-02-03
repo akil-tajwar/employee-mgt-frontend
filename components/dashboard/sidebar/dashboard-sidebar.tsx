@@ -65,7 +65,11 @@ export function DashboardSidebar() {
         },
         {
           title: 'Leave Types',
-          href: '/dashboard/setup/leaveTypes',
+          href: '/dashboard/setup/leave-types',
+        },
+        {
+          title: 'Office Timing & Weekends',
+          href: '/dashboard/setup/office-timing-and-weekends',
         },
       ],
     },
@@ -77,6 +81,10 @@ export function DashboardSidebar() {
         {
           title: 'Create Employee',
           href: '/dashboard/employee-management/create-employee',
+        },
+        {
+          title: 'Employee Attendance',
+          href: '/dashboard/employee-management/employee-attendances',
         },
       ],
     },

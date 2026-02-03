@@ -70,6 +70,7 @@ const LeaveTypes = () => {
 
   const [formData, setFormData] = useState<CreateLeaveTypeType>({
     leaveTypeName: '',
+    totalLeaves: 0,
     createdBy: userData?.userId || 0,
   })
 
@@ -86,6 +87,7 @@ const LeaveTypes = () => {
   const resetForm = useCallback(() => {
     setFormData({
       leaveTypeName: '',
+      totalLeaves: 0,
       createdBy: userData?.userId || 0,
     })
     setEditingLeaveTypeId(null)
@@ -126,8 +128,8 @@ const LeaveTypes = () => {
 
   const filteredLeaveTypes = useMemo(() => {
     if (!leaveTypes?.data) return []
-    return leaveTypes.data?.filter((dept) =>
-      dept.leaveTypeName?.toLowerCase().includes(searchTerm.toLowerCase())
+    return leaveTypes.data?.filter((leaveType) =>
+      leaveType.leaveTypeName?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   }, [leaveTypes?.data, searchTerm])
 
@@ -157,6 +159,7 @@ const LeaveTypes = () => {
       try {
         const submitData: CreateLeaveTypeType = {
           leaveTypeName: formData.leaveTypeName,
+          totalLeaves: formData.totalLeaves,
           createdBy: formData.createdBy,
         }
 
@@ -197,12 +200,13 @@ const LeaveTypes = () => {
     }
   }, [addMutation.error, updateMutation.error])
 
-  const handleEditClick = (dept: any) => {
+  const handleEditClick = (leaveType: any) => {
     setFormData({
-      leaveTypeName: dept.leaveTypeName,
+      leaveTypeName: leaveType.leaveTypeName,
+      totalLeaves: leaveType.totalLeaves,
       createdBy: userData?.userId || 0,
     })
-    setEditingLeaveTypeId(dept.leaveTypeId)
+    setEditingLeaveTypeId(leaveType.leaveTypeId)
     setIsEditMode(true)
     setIsPopupOpen(true)
   }
@@ -214,7 +218,7 @@ const LeaveTypes = () => {
           <div className="bg-amber-100 p-2 rounded-md">
             <BookOpen className="text-amber-600" />
           </div>
-          <h2 className="text-lg font-semibold">LeaveTypes</h2>
+          <h2 className="text-lg font-semibold">Leave Types</h2>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative">
@@ -244,7 +248,13 @@ const LeaveTypes = () => {
                 onClick={() => handleSort('leaveTypeName')}
                 className="cursor-pointer"
               >
-                LeaveType Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Leave Type Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              </TableHead>
+              <TableHead
+                onClick={() => handleSort('totalLeaves')}
+                className="cursor-pointer"
+              >
+                Total Leaves (Days)<ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
@@ -253,27 +263,30 @@ const LeaveTypes = () => {
             {!leaveTypes || leaveTypes.data === undefined ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-4">
-                  Loading leaveTypes...
+                  Loading leave types...
                 </TableCell>
               </TableRow>
             ) : !leaveTypes.data || leaveTypes.data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-4">
-                  No leaveTypes found
+                  No leave types found
                 </TableCell>
               </TableRow>
             ) : paginatedLeaveTypes.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-4">
-                  No leaveTypes match your search
+                  No leave types match your search
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedLeaveTypes.map((dept: any, index) => (
+              paginatedLeaveTypes.map((leaveType: any, index) => (
                 <TableRow key={index}>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell className="font-medium">
-                    {dept.leaveTypeName}
+                    {leaveType.leaveTypeName}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {leaveType.totalLeaves}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -281,7 +294,7 @@ const LeaveTypes = () => {
                         variant="ghost"
                         size="sm"
                         className="text-amber-600 hover:text-amber-700"
-                        onClick={() => handleEditClick(dept)}
+                        onClick={() => handleEditClick(leaveType)}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -290,7 +303,7 @@ const LeaveTypes = () => {
                         size="sm"
                         className="text-red-600 hover:text-red-700"
                         onClick={() => {
-                          setDeletingLeaveTypeId(dept.leaveTypeId)
+                          setDeletingLeaveTypeId(leaveType.leaveTypeId)
                           setIsDeleteDialogOpen(true)
                         }}
                       >
@@ -377,12 +390,25 @@ const LeaveTypes = () => {
           <div className="grid gap-4">
             <div className="space-y-2">
               <Label htmlFor="leaveTypeName">
-                LeaveType Name <span className="text-red-500">*</span>
+                Leave Type Name <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="leaveTypeName"
                 name="leaveTypeName"
                 value={formData.leaveTypeName}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="totalLeaves">
+                Total Leaves <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="totalLeaves"
+                name="totalLeaves"
+                value={formData.totalLeaves}
                 onChange={handleInputChange}
                 required
               />
