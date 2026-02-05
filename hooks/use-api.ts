@@ -499,13 +499,7 @@ export const useUpdateOfficeTimingWeekend = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: number
-      data: GetOfficeTimingType
-    }) => {
+    mutationFn: ({ id, data }: { id: number; data: GetOfficeTimingType }) => {
       return editOfficeTimingWeekend(id, data, token)
     },
     onSuccess: () => {
@@ -956,6 +950,7 @@ export const useAddEmployeeAttendance = ({
 }: {
   onClose: () => void
   reset: () => void
+  showToast?: (type: 'success' | 'error', message: string) => void
 }) => {
   useInitializeUser()
   const [token] = useAtom(tokenAtom)
@@ -965,18 +960,33 @@ export const useAddEmployeeAttendance = ({
     mutationFn: (data: CreateEmployeeAttendanceType) => {
       return createEmployeeAttendance(data, token)
     },
-    onSuccess: (data) => {
-      console.log('employee attendance added successfully:', data)
-      queryClient.invalidateQueries({ queryKey: ['employeeAttendances'] })
-      // Reset form fields after success
-      reset()
 
-      // Close the form modal
-      onClose()
+    onSuccess: (response) => {
+      // Expect backend to return { status: 'success', data, message? }
+      if (!response?.error) {
+        console.log('✅ Employee attendance added successfully:', response.data)
+
+        queryClient.invalidateQueries({ queryKey: ['employeeAttendances'] })
+        reset()
+        onClose()
+      } else {
+        // Backend returned something unexpected
+        console.warn('⚠ Unexpected response from server:', response)
+        toast({
+        title: 'Error!',
+        variant: 'destructive',
+        description: (response?.error?.details as any)?.message || 'Failed to add employee attendance.',
+      })
+      }
     },
-    onError: (error) => {
-      // Handle error
-      console.error('Error adding employee attendance:', error)
+
+    onError: (error: any) => {
+      console.error('❌ Error adding employee attendance:', error)
+      toast({
+        title: 'Error!',
+        variant: 'destructive',
+        description: 'Failed to add employee attendance.'
+      })
     },
   })
 
@@ -996,7 +1006,13 @@ export const useUpdateEmployeeAttendance = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: GetEmployeeAttendanceType }) => {
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number
+      data: GetEmployeeAttendanceType
+    }) => {
       return editEmployeeAttendance(id, data, token)
     },
     onSuccess: () => {

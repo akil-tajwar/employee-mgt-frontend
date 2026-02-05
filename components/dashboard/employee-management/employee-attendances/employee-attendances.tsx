@@ -22,7 +22,14 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
-import { ArrowUpDown, Search, Clock, Edit2, Trash2 } from 'lucide-react'
+import {
+  ArrowUpDown,
+  Search,
+  Clock,
+  Edit2,
+  Trash2,
+  Calendar,
+} from 'lucide-react'
 import { Popup } from '@/utils/popup'
 import type {
   CreateEmployeeAttendanceType,
@@ -72,10 +79,10 @@ const EmployeeAttendances = () => {
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [attendancesPerPage] = useState(10)
+  const [groupsPerPage] = useState(5) // Number of date groups per page
   const [sortColumn, setSortColumn] =
-    useState<keyof GetEmployeeAttendanceType>('attendanceDate')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+    useState<keyof GetEmployeeAttendanceType>('employeeName')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [searchTerm, setSearchTerm] = useState('')
 
   const [isPopupOpen, setIsPopupOpen] = useState(false)
@@ -113,10 +120,8 @@ const EmployeeAttendances = () => {
     const difference = actualTotalMinutes - expectedTotalMinutes
 
     if (isLate) {
-      // For late in: positive if actual > expected
       return Math.max(0, difference)
     } else {
-      // For early out: positive if actual < expected
       return Math.max(0, -difference)
     }
   }
@@ -132,7 +137,6 @@ const EmployeeAttendances = () => {
       const forms: AttendanceFormData[] = employees.data
         .filter((emp: GetEmployeeType) => emp.isActive === 1)
         .map((emp: GetEmployeeType) => {
-          // Find the office timing for this employee
           const officeTiming = officeTimingWeekends?.data?.find(
             (ot: any) => ot.officeTimingId === emp.officeTimingId
           )
@@ -149,7 +153,7 @@ const EmployeeAttendances = () => {
             earlyOutMinutes: 0,
             officeStartTime: startTime,
             officeEndTime: endTime,
-            isChecked: true, // All checked by default
+            isChecked: true,
           }
         })
 
@@ -157,7 +161,6 @@ const EmployeeAttendances = () => {
     }
   }, [isPopupOpen, isEditMode, employees?.data, officeTimingWeekends?.data])
 
-  // Check if all employees are selected
   const allChecked = useMemo(() => {
     return (
       attendanceForms.length > 0 &&
@@ -165,19 +168,16 @@ const EmployeeAttendances = () => {
     )
   }, [attendanceForms])
 
-  // Check if some (but not all) employees are selected
   const someChecked = useMemo(() => {
     return attendanceForms.some((form) => form.isChecked) && !allChecked
   }, [attendanceForms, allChecked])
 
-  // Toggle select all/none
   const handleSelectAll = (checked: boolean) => {
     setAttendanceForms((prev) =>
       prev.map((form) => ({ ...form, isChecked: checked }))
     )
   }
 
-  // Toggle individual checkbox
   const handleCheckboxChange = (index: number, checked: boolean) => {
     setAttendanceForms((prev) => {
       const updated = [...prev]
@@ -195,7 +195,6 @@ const EmployeeAttendances = () => {
       const updated = [...prev]
       updated[index] = { ...updated[index], [field]: value }
 
-      // Recalculate late/early minutes
       if (field === 'inTime') {
         updated[index].lateInMinutes = calculateTimeDifference(
           value,
@@ -264,34 +263,57 @@ const EmployeeAttendances = () => {
     )
   }, [employeeAttendances?.data, searchTerm])
 
-  const sortedAttendances = useMemo(() => {
+  // Group attendances by date and sort
+  const groupedAttendances = useMemo(() => {
     if (!Array.isArray(filteredAttendances)) return []
-    return [...filteredAttendances].sort((a, b) => {
-      const aValue = a[sortColumn] ?? ''
-      const bValue = b[sortColumn] ?? ''
 
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
+    const groups = filteredAttendances.reduce(
+      (acc, attendance) => {
+        const date = attendance.attendanceDate
+        if (!acc[date]) {
+          acc[date] = []
+        }
+        acc[date].push(attendance)
+        return acc
+      },
+      {} as Record<string, GetEmployeeAttendanceType[]>
+    )
+
+    // Sort each group's attendances by employee name or selected column
+    Object.keys(groups).forEach((date) => {
+      groups[date].sort((a, b) => {
+        const aValue = a[sortColumn] ?? ''
+        const bValue = b[sortColumn] ?? ''
+
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return sortDirection === 'asc'
+            ? aValue.localeCompare(bValue)
+            : bValue.localeCompare(aValue)
+        }
+
         return sortDirection === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue)
-      }
-
-      return sortDirection === 'asc'
-        ? aValue > bValue
-          ? 1
-          : -1
-        : bValue > aValue
-          ? 1
-          : -1
+          ? aValue > bValue
+            ? 1
+            : -1
+          : bValue > aValue
+            ? 1
+            : -1
+      })
     })
+
+    // Sort dates in descending order (latest first)
+    return Object.entries(groups).sort(([dateA], [dateB]) =>
+      dateB.localeCompare(dateA)
+    )
   }, [filteredAttendances, sortColumn, sortDirection])
 
-  const paginatedAttendances = useMemo(() => {
-    const startIndex = (currentPage - 1) * attendancesPerPage
-    return sortedAttendances.slice(startIndex, startIndex + attendancesPerPage)
-  }, [sortedAttendances, currentPage, attendancesPerPage])
+  // Paginate by date groups
+  const paginatedGroups = useMemo(() => {
+    const startIndex = (currentPage - 1) * groupsPerPage
+    return groupedAttendances.slice(startIndex, startIndex + groupsPerPage)
+  }, [groupedAttendances, currentPage, groupsPerPage])
 
-  const totalPages = Math.ceil(sortedAttendances.length / attendancesPerPage)
+  const totalPages = Math.ceil(groupedAttendances.length / groupsPerPage)
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -299,7 +321,6 @@ const EmployeeAttendances = () => {
       setError(null)
 
       try {
-        // Filter only checked employees
         const checkedForms = attendanceForms.filter((form) => form.isChecked)
 
         if (checkedForms.length === 0) {
@@ -308,7 +329,6 @@ const EmployeeAttendances = () => {
         }
 
         if (isEditMode && editingAttendanceId) {
-          // Edit mode - single attendance
           const form = checkedForms[0]
           const submitData = {
             employeeId: form.employeeId,
@@ -325,7 +345,6 @@ const EmployeeAttendances = () => {
             data: submitData as GetEmployeeAttendanceType,
           })
         } else {
-          // Add mode - submit array of attendances
           const attendancesArray: CreateEmployeeAttendanceType[] =
             checkedForms.map((form) => ({
               employeeId: form.employeeId,
@@ -337,7 +356,6 @@ const EmployeeAttendances = () => {
               createdBy: userData?.userId || 0,
             }))
 
-          // Submit as array (backend accepts both object and array)
           await addMutation.mutateAsync(attendancesArray as any)
         }
       } catch (err) {
@@ -363,7 +381,6 @@ const EmployeeAttendances = () => {
   }, [addMutation.error, updateMutation.error])
 
   const handleEditClick = (attendance: GetEmployeeAttendanceType) => {
-    // For edit mode, we'll just edit a single attendance record
     const employee = employees?.data?.find(
       (emp: GetEmployeeType) => emp.employeeId === attendance.employeeId
     )
@@ -425,128 +442,141 @@ const EmployeeAttendances = () => {
         </div>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader className="bg-amber-100">
-            <TableRow>
-              <TableHead>Sl No.</TableHead>
-              <TableHead
-                onClick={() => handleSort('employeeName')}
-                className="cursor-pointer"
-              >
-                Employee Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-              </TableHead>
-              <TableHead
-                onClick={() => handleSort('attendanceDate')}
-                className="cursor-pointer"
-              >
-                Date <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-              </TableHead>
-              <TableHead
-                onClick={() => handleSort('inTime')}
-                className="cursor-pointer"
-              >
-                In Time <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-              </TableHead>
-              <TableHead
-                onClick={() => handleSort('outTime')}
-                className="cursor-pointer"
-              >
-                Out Time <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-              </TableHead>
-              <TableHead>Late (mins)</TableHead>
-              <TableHead>Early Out (mins)</TableHead>
-              <TableHead className="text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {!employeeAttendances || employeeAttendances.data === undefined ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-4">
-                  Loading attendances...
-                </TableCell>
-              </TableRow>
-            ) : !employeeAttendances.data ||
-              employeeAttendances.data.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-4">
-                  No attendances found
-                </TableCell>
-              </TableRow>
-            ) : paginatedAttendances.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-4">
-                  No attendances match your search
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedAttendances.map((attendance: any, index) => (
-                <TableRow key={attendance.employeeAttendanceId || index}>
-                  <TableCell>
-                    {(currentPage - 1) * attendancesPerPage + index + 1}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {attendance.employeeName}
-                  </TableCell>
-                  <TableCell>{formatDate(attendance.attendanceDate)}</TableCell>
-                  <TableCell>{formatTime(attendance.inTime)}</TableCell>
-                  <TableCell>{formatTime(attendance.outTime)}</TableCell>
-                  <TableCell>
-                    <span
-                      className={
-                        attendance.lateInMinutes > 0
-                          ? 'text-red-600 font-medium'
-                          : ''
-                      }
-                    >
-                      {attendance.lateInMinutes}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={
-                        attendance.earlyOutMinutes > 0
-                          ? 'text-orange-600 font-medium'
-                          : ''
-                      }
-                    >
-                      {attendance.earlyOutMinutes}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-amber-600 hover:text-amber-700"
-                        onClick={() => handleEditClick(attendance)}
+      <div className="space-y-6">
+        {!employeeAttendances || employeeAttendances.data === undefined ? (
+          <div className="text-center py-8 text-gray-500">
+            Loading attendances...
+          </div>
+        ) : !employeeAttendances.data ||
+          employeeAttendances.data.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            No attendances found
+          </div>
+        ) : paginatedGroups.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            No attendances match your search
+          </div>
+        ) : (
+          paginatedGroups.map(([date, attendances]) => (
+            <div
+              key={date}
+              className="rounded-lg border border-gray-200 overflow-hidden shadow-sm"
+            >
+              {/* Date Header */}
+              <div className="bg-amber-200 px-6 py-4 flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-black" />
+                <h3 className="text-lg font-semibold text-black">
+                  {formatDate(new Date(date))}
+                </h3>
+                <span className="ml-auto bg-black/10 px-3 py-1 rounded-full text-sm font-medium text-black">
+                  {attendances.length}{' '}
+                  {attendances.length === 1 ? 'employee' : 'employees'}
+                </span>
+              </div>
+
+              {/* Attendance Table */}
+              <div className="bg-white">
+                <Table>
+                  <TableHeader className="bg-amber-50">
+                    <TableRow>
+                      <TableHead className="w-20">Sl No.</TableHead>
+                      <TableHead
+                        onClick={() => handleSort('employeeName')}
+                        className="cursor-pointer hover:bg-amber-100 transition-colors"
                       >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700"
-                        onClick={() => {
-                          setDeletingAttendanceId(
-                            attendance.employeeAttendanceId
-                          )
-                          setIsDeleteDialogOpen(true)
-                        }}
+                        Employee Name{' '}
+                        <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                      </TableHead>
+                      <TableHead
+                        onClick={() => handleSort('inTime')}
+                        className="cursor-pointer hover:bg-amber-100 transition-colors"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                        In Time <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                      </TableHead>
+                      <TableHead
+                        onClick={() => handleSort('outTime')}
+                        className="cursor-pointer hover:bg-amber-100 transition-colors"
+                      >
+                        Out Time <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                      </TableHead>
+                      <TableHead>Late (mins)</TableHead>
+                      <TableHead>Early Out (mins)</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {attendances.map((attendance: any, index) => (
+                      <TableRow
+                        key={attendance.employeeAttendanceId || index}
+                        className="hover:bg-amber-50/50"
+                      >
+                        <TableCell className="font-medium text-gray-600">
+                          {index + 1}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {attendance.employeeName}
+                        </TableCell>
+                        <TableCell>{formatTime(attendance.inTime)}</TableCell>
+                        <TableCell>{formatTime(attendance.outTime)}</TableCell>
+                        <TableCell>
+                          <span
+                            className={
+                              attendance.lateInMinutes > 0
+                                ? 'text-red-600 font-semibold bg-red-50 px-2 py-1 rounded'
+                                : 'text-gray-600'
+                            }
+                          >
+                            {attendance.lateInMinutes}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={
+                              attendance.earlyOutMinutes > 0
+                                ? 'text-orange-600 font-semibold bg-orange-50 px-2 py-1 rounded'
+                                : 'text-gray-600'
+                            }
+                          >
+                            {attendance.earlyOutMinutes}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                              onClick={() => handleEditClick(attendance)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                setDeletingAttendanceId(
+                                  attendance.employeeAttendanceId
+                                )
+                                setIsDeleteDialogOpen(true)
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
-      {sortedAttendances.length > 0 && (
-        <div className="mt-4">
+      {groupedAttendances.length > 0 && totalPages > 1 && (
+        <div className="mt-6">
           <Pagination>
             <PaginationContent>
               <PaginationItem>
