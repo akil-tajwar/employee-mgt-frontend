@@ -165,6 +165,7 @@ export const leaveTypeSchema = z.object({
   leaveTypeId: z.number().optional(),
   leaveTypeName: z.string(),
   totalLeaves: z.number(),
+  yearPeriod: z.number(),
   createdBy: z.number(),
   createdAt: z.number().optional().nullable(),
   updatedBy: z.number().optional().nullable(),
