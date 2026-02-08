@@ -36,6 +36,7 @@ import {
   Trash2,
   Copy,
   Calendar,
+  Plus,
 } from 'lucide-react'
 import { Popup } from '@/utils/popup'
 import type { CreateLeaveTypeType, GetLeaveTypeType } from '@/utils/type'
@@ -277,6 +278,11 @@ const LeaveTypes = () => {
       e.preventDefault()
       setError(null)
 
+      if (leaveTypesToCopy.length === 0) {
+        setError('No leave types to copy')
+        return
+      }
+
       try {
         // Create array of leave types with the new year
         const copiedLeaveTypes: CreateLeaveTypeType[] = leaveTypesToCopy.map(
@@ -325,7 +331,8 @@ const LeaveTypes = () => {
         totalLeaves: lt.totalLeaves,
       }))
     )
-    setCopyTargetYear(currentYear)
+    // Set default target year to next year after the source year
+    setCopyTargetYear(year + 1)
     setIsCopyPopupOpen(true)
   }
 
@@ -342,6 +349,20 @@ const LeaveTypes = () => {
       }
       return updated
     })
+  }
+
+  const handleDeleteCopiedLeaveType = (index: number) => {
+    setLeaveTypesToCopy((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleAddNewCopyLeaveType = () => {
+    setLeaveTypesToCopy((prev) => [
+      ...prev,
+      {
+        leaveTypeName: '',
+        totalLeaves: 0,
+      },
+    ])
   }
 
   return (
@@ -643,8 +664,8 @@ const LeaveTypes = () => {
                 You are copying <strong>{leaveTypesToCopy.length}</strong> leave
                 type
                 {leaveTypesToCopy.length !== 1 ? 's' : ''} from year{' '}
-                <strong>{copySourceYear}</strong>. You can modify the values
-                before copying.
+                <strong>{copySourceYear}</strong>. You can modify the values,
+                add new leave types, or remove items you don&apos;t want to copy.
               </p>
             </div>
 
@@ -672,6 +693,20 @@ const LeaveTypes = () => {
               </Select>
             </div>
 
+            <div className="flex justify-between items-center">
+              <Label>Leave Types to Copy</Label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="bg-amber-500 hover:bg-amber-600 text-black border-amber-500"
+                onClick={handleAddNewCopyLeaveType}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Leave Type
+              </Button>
+            </div>
+
             <div className="border rounded-lg overflow-hidden">
               <div className="max-h-96 overflow-y-auto">
                 <Table>
@@ -680,45 +715,69 @@ const LeaveTypes = () => {
                       <TableHead className="w-12">Sl No.</TableHead>
                       <TableHead className="w-1/2">Leave Type Name</TableHead>
                       <TableHead>Total Leaves (Days)</TableHead>
+                      <TableHead className="text-right w-20">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {leaveTypesToCopy.map((lt, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium text-gray-600">
-                          {index + 1}
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            value={lt.leaveTypeName}
-                            onChange={(e) =>
-                              handleCopyLeaveTypeChange(
-                                index,
-                                'leaveTypeName',
-                                e.target.value
-                              )
-                            }
-                            required
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={lt.totalLeaves}
-                            onChange={(e) =>
-                              handleCopyLeaveTypeChange(
-                                index,
-                                'totalLeaves',
-                                e.target.value
-                              )
-                            }
-                            required
-                            className="w-32"
-                          />
+                    {leaveTypesToCopy.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          className="text-center py-8 text-gray-500"
+                        >
+                          No leave types to copy. Click &quot;Add Leave Type&quot; button
+                          to add one.
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      leaveTypesToCopy.map((lt, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium text-gray-600">
+                            {index + 1}
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={lt.leaveTypeName}
+                              onChange={(e) =>
+                                handleCopyLeaveTypeChange(
+                                  index,
+                                  'leaveTypeName',
+                                  e.target.value
+                                )
+                              }
+                              required
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={lt.totalLeaves}
+                              onChange={(e) =>
+                                handleCopyLeaveTypeChange(
+                                  index,
+                                  'totalLeaves',
+                                  e.target.value
+                                )
+                              }
+                              required
+                              className="w-32"
+                            />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteCopiedLeaveType(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -737,7 +796,7 @@ const LeaveTypes = () => {
             </Button>
             <Button
               type="submit"
-              disabled={addMutation.isPending}
+              disabled={addMutation.isPending || leaveTypesToCopy.length === 0}
               className="bg-amber-500 hover:bg-amber-600 text-black"
             >
               {addMutation.isPending ? 'Copying...' : 'Copy Leave Types'}
