@@ -114,7 +114,13 @@ export const employeeSchema = z.object({
   updatedAt: z.number().optional().nullable(),
 })
 export type CreateEmployeeType = z.infer<typeof employeeSchema>
-export type GetEmployeeType = z.infer<typeof employeeSchema>
+export type GetEmployeeType = z.infer<typeof employeeSchema> & {
+  departmentName: string
+  designationName: string
+  employeeTypeName: string
+  officeTiming: string
+  leaveTypes: string[]
+}
 
 //weekend
 export const weekendSchema = z.object({
@@ -135,12 +141,8 @@ export const officeTimingSchema = z.object({
   updatedBy: z.number().optional().nullable(),
   updatedAt: z.number().optional().nullable(),
 })
-export type CreateOfficeTimingType = z.infer<
-  typeof officeTimingSchema
->
-export type GetOfficeTimingType = z.infer<
-  typeof officeTimingSchema
-> & {
+export type CreateOfficeTimingType = z.infer<typeof officeTimingSchema>
+export type GetOfficeTimingType = z.infer<typeof officeTimingSchema> & {
   weekends: string[]
 }
 
@@ -187,7 +189,18 @@ export const employeeAttendanceSchema = z.object({
   updatedBy: z.number().optional(),
   updatedAt: z.number().optional(),
 })
-export type CreateEmployeeAttendanceType = z.infer<typeof employeeAttendanceSchema>
-export type GetEmployeeAttendanceType = z.infer<typeof employeeAttendanceSchema> & {
+export type CreateEmployeeAttendanceType = z.infer<
+  typeof employeeAttendanceSchema
+>
+export type GetEmployeeAttendanceType = z.infer<
+  typeof employeeAttendanceSchema
+> & {
   employeeName: string
 }
+
+export const assignLeaveTypeSchema = z.object({
+  employeeLeaveTypeId: z.number().optional(),
+  employeeId: z.number(),
+  leaveTypeIds: z.array(z.number()).min(1),
+})
+export type AssignLeaveTypeType = z.infer<typeof assignLeaveTypeSchema>
