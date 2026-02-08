@@ -3,6 +3,7 @@ import { useAtom } from 'jotai'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from './use-toast'
 import {
+  assignLeaveType,
   createDepartment,
   createDesignation,
   createEmployee,
@@ -39,6 +40,7 @@ import {
   getEmployeeById,
 } from '@/utils/api'
 import {
+  AssignLeaveTypeType,
   CreateDepartmentType,
   CreateDesignationType,
   CreateEmployeeAttendanceType,
@@ -680,6 +682,40 @@ export const useDeleteEmployee = ({
     },
     onError: (error) => {
       console.error('Error sending delete request:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useAssignLeaveType = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ data }: { data: AssignLeaveTypeType }) => {
+      return assignLeaveType(data, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'leave type assigned successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['employees'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error assigning leaveType:', error)
     },
   })
 

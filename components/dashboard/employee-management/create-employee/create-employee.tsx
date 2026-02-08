@@ -36,13 +36,21 @@ import { formatTime } from '@/utils/conversions'
 const CreateEmployee = () => {
   useInitializeUser()
   const [userData] = useAtom(userDataAtom)
-  console.log("🚀 ~ CreateEmployee ~ userData:", userData)
+  console.log('🚀 ~ CreateEmployee ~ userData:', userData)
 
   const { data: departments } = useGetDepartments()
   const { data: designations } = useGetDesignations()
   const { data: employeeTypes } = useGetEmployeeTypes()
-  const { data: leaveTypes } = useGetLeaveTypes()
   const { data: officeTimingWeekends } = useGetOfficeTimingWeekends()
+  const { data: leaveTypes } = useGetLeaveTypes()
+  console.log('🚀 ~ CreateEmployee ~ leaveTypes:', leaveTypes?.data)
+
+  const currentYear = new Date().getFullYear()
+
+  const currentYearLeaveTypes = leaveTypes?.data?.filter(
+    (item) => item.yearPeriod === currentYear
+  )
+  console.log("🚀 ~ CreateEmployee ~ currentYearLeaveTypes:", currentYearLeaveTypes)
 
   const [error, setError] = useState<string | null>(null)
   const [isPopupOpen, setIsPopupOpen] = useState(false)
@@ -807,11 +815,11 @@ const CreateEmployee = () => {
 
         {/* Leave Types — multi-select checkboxes */}
         <div className="border p-8 rounded-lg bg-slate-100">
-          <h3 className="text-md font-semibold mb-4">Leave Types</h3>
+          <h3 className="text-md font-semibold mb-4">Leave Types ({currentYear})</h3>
           <div className="space-y-3">
             <Label>Select Leave Types</Label>
             <div className="grid gap-3 md:grid-cols-3">
-              {leaveTypes?.data?.map((leave) => (
+              {currentYearLeaveTypes?.map((leave) => (
                 <div
                   key={leave.leaveTypeId}
                   className="flex items-center space-x-2"
@@ -826,7 +834,7 @@ const CreateEmployee = () => {
                       leave.leaveTypeId !== undefined &&
                       handleLeaveTypeToggle(leave.leaveTypeId)
                     }
-                    className='bg-white'
+                    className="bg-white"
                   />
                   <label
                     htmlFor={`leave-${leave.leaveTypeId}`}

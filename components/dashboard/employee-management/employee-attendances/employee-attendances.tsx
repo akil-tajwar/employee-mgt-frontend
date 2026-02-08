@@ -484,7 +484,7 @@ const EmployeeAttendances = () => {
                         onClick={() => handleSort('employeeName')}
                         className="cursor-pointer hover:bg-amber-100 transition-colors"
                       >
-                        Employee Name{' '}
+                        Employee Name
                         <ArrowUpDown className="ml-2 h-4 w-4 inline" />
                       </TableHead>
                       <TableHead
@@ -499,7 +499,7 @@ const EmployeeAttendances = () => {
                       >
                         Out Time <ArrowUpDown className="ml-2 h-4 w-4 inline" />
                       </TableHead>
-                      <TableHead>Late (mins)</TableHead>
+                      <TableHead>Late In (mins)</TableHead>
                       <TableHead>Early Out (mins)</TableHead>
                       <TableHead className="text-right">Action</TableHead>
                     </TableRow>
@@ -522,7 +522,7 @@ const EmployeeAttendances = () => {
                           <span
                             className={
                               attendance.lateInMinutes > 0
-                                ? 'text-red-600 font-semibold bg-red-50 px-2 py-1 rounded'
+                                ? 'text-red-600 font-semibold px-2 py-1 rounded'
                                 : 'text-gray-600'
                             }
                           >
@@ -533,7 +533,7 @@ const EmployeeAttendances = () => {
                           <span
                             className={
                               attendance.earlyOutMinutes > 0
-                                ? 'text-orange-600 font-semibold bg-orange-50 px-2 py-1 rounded'
+                                ? 'text-red-600 font-semibold px-2 py-1 rounded'
                                 : 'text-gray-600'
                             }
                           >

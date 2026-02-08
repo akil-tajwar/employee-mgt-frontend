@@ -1,5 +1,6 @@
 import { fetchApi, fetchApiWithFile } from '@/utils/http'
 import {
+  AssignLeaveTypeType,
   CreateDepartmentType,
   CreateDesignationType,
   CreateEmployeeAttendanceType,
@@ -317,6 +318,21 @@ export async function deleteEmployee(id: number, token: string) {
     method: 'DELETE',
     headers: {
       Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function assignLeaveType(
+  data: AssignLeaveTypeType,
+  token: string
+) {
+  return fetchApi<AssignLeaveTypeType>({
+    url: `api/employees/assignLeaveType`,
+    method: 'PATCH',
+    body: data,
+    headers: {
+      Authorization: `${token}`,
       'Content-Type': 'application/json',
     },
   })
