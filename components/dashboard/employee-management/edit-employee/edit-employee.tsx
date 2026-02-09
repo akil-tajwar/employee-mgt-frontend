@@ -12,59 +12,59 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { User, Upload, Download } from 'lucide-react'
-import { useInitializeUser, userDataAtom } from '@/utils/user'
+import { User } from 'lucide-react'
+import { tokenAtom, useInitializeUser, userDataAtom } from '@/utils/user'
 import { useAtom } from 'jotai'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { CustomCombobox } from '@/utils/custom-combobox'
 import {
-  useAddEmployee,
+  useUpdateEmployeeWithFees,
   useGetDepartments,
   useGetDesignations,
   useGetEmployeeTypes,
   useGetLeaveTypes,
   useGetOfficeTimingWeekends,
+  useGetEmployeeById,
 } from '@/hooks/use-api'
 import type { CreateEmployeeType } from '@/utils/type'
 import { toast } from '@/hooks/use-toast'
-import ExcelFileInput from '@/utils/excel-file-input'
-import { Popup } from '@/utils/popup'
-import * as XLSX from 'xlsx'
-import { saveAs } from 'file-saver'
 import { formatTime } from '@/utils/conversions'
 
-const CreateEmployee = () => {
+const EditEmployee = () => {
   useInitializeUser()
   const [userData] = useAtom(userDataAtom)
-  console.log('🚀 ~ CreateEmployee ~ userData:', userData)
-
   const router = useRouter()
+
+  const params = useParams()
+  const employeeId = params.employeeId
+  const { data: employee } = useGetEmployeeById(
+    employeeId ? Number(employeeId) : 0
+  )
+  console.log("🚀 ~ EditEmployee ~ employee:", employee)
 
   const { data: departments } = useGetDepartments()
   const { data: designations } = useGetDesignations()
   const { data: employeeTypes } = useGetEmployeeTypes()
   const { data: officeTimingWeekends } = useGetOfficeTimingWeekends()
   const { data: leaveTypes } = useGetLeaveTypes()
-  console.log('🚀 ~ CreateEmployee ~ leaveTypes:', leaveTypes?.data)
 
   const currentYear = new Date().getFullYear()
 
   const currentYearLeaveTypes = leaveTypes?.data?.filter(
     (item) => item.yearPeriod === currentYear
   )
-  console.log("🚀 ~ CreateEmployee ~ currentYearLeaveTypes:", currentYearLeaveTypes)
 
   const [error, setError] = useState<string | null>(null)
-  const [isPopupOpen, setIsPopupOpen] = useState(false)
-  const [isImportPopupOpen, setIsImportPopupOpen] = useState(false)
-
+  const [loading, setLoading] = useState(true)
   const [employeePhotoFile, setEmployeePhotoFile] = useState<File | null>(null)
-  const [cvUrl, setCvFile] = useState<File | null>(null)
+  const [cvFile, setCvFile] = useState<File | null>(null)
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null)
+  const [existingCvUrl, setExistingCvUrl] = useState<string | null>(null)
 
   const [formData, setFormData] = useState<
     Omit<
       CreateEmployeeType,
-      'employeeId' | 'createdAt' | 'updatedAt' | 'updatedBy'
+      'employeeId' | 'createdAt' | 'updatedAt' | 'createdBy'
     >
   >({
     fullName: '',
@@ -90,8 +90,46 @@ const CreateEmployee = () => {
     employeeTypeId: 0,
     leaveTypeIds: [],
     officeTimingId: 0,
-    createdBy: userData?.userId || 0,
+    updatedBy: userData?.userId || 0,
   })
+
+  // Load employee data
+  useEffect(() => {
+    if (employee?.data) {
+      const emp = employee.data
+
+      setFormData({
+        fullName: emp.fullName || '',
+        email: emp.email || '',
+        officialPhone: emp.officialPhone || '',
+        personalPhone: emp.personalPhone || null,
+        presentAddress: emp.presentAddress || '',
+        permanentAddress: emp.permanentAddress || null,
+        emergencyContactName: emp.emergencyContactName || null,
+        emergencyContactPhone: emp.emergencyContactPhone || null,
+        photoUrl: emp.photoUrl || null,
+        cvUrl: emp.cvUrl || null,
+        dob: emp.dob || '',
+        doj: emp.doj || new Date().toISOString().split('T')[0],
+        gender: emp.gender || 'Male',
+        bloodGroup: emp.bloodGroup || null,
+        basicSalary: emp.basicSalary || 0,
+        grossSalary: emp.grossSalary || 0,
+        isActive: emp.isActive ?? 1,
+        empCode: emp.empCode || '',
+        departmentId: emp.departmentId || 0,
+        designationId: emp.designationId || 0,
+        employeeTypeId: emp.employeeTypeId || 0,
+        leaveTypeIds: emp.leaveTypeIds || [],
+        officeTimingId: emp.officeTimingId || 0,
+        updatedBy: emp.updatedBy || userData?.userId || 0,
+      })
+
+      setExistingPhotoUrl(emp.photoUrl || null)
+      setExistingCvUrl(emp.cvUrl || null)
+      setLoading(false)
+    }
+  }, [employee, userData])
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -156,46 +194,15 @@ const CreateEmployee = () => {
   }
 
   const resetForm = () => {
-    setFormData({
-      fullName: '',
-      email: '',
-      officialPhone: '',
-      personalPhone: null,
-      presentAddress: '',
-      permanentAddress: null,
-      emergencyContactName: null,
-      emergencyContactPhone: null,
-      photoUrl: null,
-      cvUrl: null,
-      dob: '',
-      doj: new Date().toISOString().split('T')[0],
-      gender: 'Male',
-      bloodGroup: null,
-      basicSalary: 0,
-      grossSalary: 0,
-      isActive: 1,
-      empCode: '',
-      departmentId: 0,
-      designationId: 0,
-      employeeTypeId: 0,
-      leaveTypeIds: [],
-      officeTimingId: 0,
-      createdBy: userData?.userId || 0,
-    })
-    setEmployeePhotoFile(null)
-    setCvFile(null)
-    setIsPopupOpen(false)
-    setError(null)
     router.push('/dashboard/employee-management/employees')
   }
 
   const closePopup = useCallback(() => {
-    setIsPopupOpen(false)
-    setError(null)
     router.push('/dashboard/employee-management/employees')
+    setError(null)
   }, [router])
 
-  const addMutation = useAddEmployee({
+  const updateMutation = useUpdateEmployeeWithFees({
     onClose: closePopup,
     reset: resetForm,
   })
@@ -203,6 +210,12 @@ const CreateEmployee = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+
+    if (!employeeId) {
+      setError('Employee ID is missing')
+      return
+    }
+
     console.log('=== FORM SUBMISSION START ===')
     console.log('📋 Employee Details:', formData)
 
@@ -229,24 +242,22 @@ const CreateEmployee = () => {
 
     const employeeDetailsPayload = {
       ...formData,
-      photoUrl: null,
-      cvUrl: null,
-      createdBy: userData?.userId || 0,
+      photoUrl: existingPhotoUrl,
+      cvUrl: existingCvUrl,
+    //   updatedBy: formData.updatedBy,
+      updatedBy: userData?.userId || 0,
     }
-    console.log(
-      '📦 Employee Details Payload (without photo):',
-      employeeDetailsPayload
-    )
+    console.log('📦 Employee Details Payload:', employeeDetailsPayload)
     form.append('employeeDetails', JSON.stringify(employeeDetailsPayload))
 
     if (employeePhotoFile) {
       form.append('photoUrl', employeePhotoFile)
-      console.log(`✅ Appended photoUrl to FormData`)
+      console.log(`✅ Appended new photoUrl to FormData`)
     }
 
-    if (cvUrl) {
-      form.append('cvUrl', cvUrl)
-      console.log(`✅ Appended cvUrl to FormData`)
+    if (cvFile) {
+      form.append('cvUrl', cvFile)
+      console.log(`✅ Appended new cvUrl to FormData`)
     }
 
     console.log('📤 FormData contents:')
@@ -262,140 +273,43 @@ const CreateEmployee = () => {
     console.log('=== FORM SUBMISSION END ===')
 
     try {
-      await addMutation.mutateAsync(form as any)
-      console.log('✅ Employee created successfully!')
+      await updateMutation.mutateAsync({
+        id: Number(employeeId),
+        data: form as any,
+      })
+      console.log('✅ Employee updated successfully!')
       toast({
         title: 'Success!',
-        description: 'Employee is added successfully.',
+        description: 'Employee updated successfully.',
       })
     } catch (err) {
-      setError('Failed to create employee')
-      console.error('❌ Error creating employee:', err)
-    }
-  }
-
-  const handleDownloadTemplate = () => {
-    const templateData = [
-      {
-        FullName: '',
-        Email: '',
-        OfficialPhone: '',
-        PersonalPhone: '',
-        PresentAddress: '',
-        PermanentAddress: '',
-        EmergencyContactName: '',
-        EmergencyContactPhone: '',
-        DOB: '',
-        DOJ: '',
-        Gender: 'Male',
-        BloodGroup: '',
-        BasicSalary: '',
-        GrossSalary: '',
-        EmpCode: '',
-        DepartmentId: '',
-        DesignationId: '',
-        EmployeeTypeId: '',
-        LeaveTypeIds: '',
-        OfficeTimingId: '',
-      },
-    ]
-
-    const worksheet = XLSX.utils.json_to_sheet(templateData)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Employee Template')
-
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: 'xlsx',
-      type: 'array',
-    })
-
-    const blob = new Blob([excelBuffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8',
-    })
-
-    saveAs(blob, 'create-employees-template.xlsx')
-  }
-
-  const handleExcelDataParsed = (data: any[]) => {
-    console.log('Excel data parsed:', data)
-  }
-
-  const handleExcelSubmit = async (data: any[]) => {
-    try {
-      const employeesToCreate = data.map((row) => ({
-        fullName: row['FullName'] || '',
-        email: row['Email'] || '',
-        officialPhone: row['OfficialPhone'] || '',
-        personalPhone: row['PersonalPhone'] || null,
-        presentAddress: row['PresentAddress'] || '',
-        permanentAddress: row['PermanentAddress'] || null,
-        emergencyContactName: row['EmergencyContactName'] || null,
-        emergencyContactPhone: row['EmergencyContactPhone'] || null,
-        photoUrl: null,
-        cvUrl: null,
-        dob: row['DOB'] || '',
-        doj: row['DOJ'] || new Date().toISOString().split('T')[0],
-        gender: row['Gender'] || 'Male',
-        bloodGroup: row['BloodGroup'] || null,
-        basicSalary: row['BasicSalary'] ? Number(row['BasicSalary']) : 0,
-        grossSalary: row['GrossSalary'] ? Number(row['GrossSalary']) : 0,
-        isActive: 1,
-        empCode: row['EmpCode'] || '',
-        departmentId: row['DepartmentId'] ? Number(row['DepartmentId']) : 0,
-        designationId: row['DesignationId'] ? Number(row['DesignationId']) : 0,
-        employeeTypeId: row['EmployeeTypeId']
-          ? Number(row['EmployeeTypeId'])
-          : 0,
-        createdBy: userData?.userId || 0,
-        leaveTypeIds: row['LeaveTypeIds']
-          ? row['LeaveTypeIds']
-              .toString()
-              .split(',')
-              .map((id: string) => Number(id.trim()))
-              .filter((id: number) => !isNaN(id))
-          : [],
-        officeTimingId: row['OfficeTimingId']
-          ? Number(row['OfficeTimingId'])
-          : null,
-      }))
-
-      console.log('Employees to create:', employeesToCreate)
-
-      for (const employee of employeesToCreate) {
-        const form = new FormData()
-        const employeeDetailsPayload = {
-          ...employee,
-          photoUrl: null,
-          cvUrl: null,
-        }
-        form.append('employeeDetails', JSON.stringify(employeeDetailsPayload))
-
-        await addMutation.mutateAsync(form as any)
-      }
-
-      setIsImportPopupOpen(false)
-      toast({
-        title: 'Success!',
-        description: `${employeesToCreate.length} employees added successfully.`,
-      })
-      resetForm()
-    } catch (error) {
-      console.error('Error importing employees:', error)
-      toast({
-        title: 'Error',
-        description:
-          'Failed to import employees. Please check the data and try again.',
-        variant: 'destructive',
-      })
+      setError('Failed to update employee')
+      console.error('❌ Error updating employee:', err)
     }
   }
 
   useEffect(() => {
-    if (addMutation.error) {
-      setError('Error creating employee')
-      console.error('❌ Mutation error:', addMutation.error)
+    if (updateMutation.error) {
+      setError('Error updating employee')
+      console.error('❌ Mutation error:', updateMutation.error)
     }
-  }, [addMutation.error])
+  }, [updateMutation.error])
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <p>Loading employee data...</p>
+      </div>
+    )
+  }
+
+  if (!employeeId) {
+    return (
+      <div className="p-6">
+        <div className="text-red-600">Invalid employee ID</div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -404,25 +318,7 @@ const CreateEmployee = () => {
           <div className="bg-amber-100 p-2 rounded-md">
             <User className="text-amber-600" />
           </div>
-          <h2 className="text-lg font-semibold">Create Employee</h2>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            className="gap-2 bg-transparent"
-            onClick={handleDownloadTemplate}
-          >
-            <Download className="h-4 w-4" />
-            Download Template
-          </Button>
-          <Button
-            variant="outline"
-            className="gap-2 bg-transparent"
-            onClick={() => setIsImportPopupOpen(true)}
-          >
-            <Upload className="h-4 w-4" />
-            Bulk Import
-          </Button>
+          <h2 className="text-lg font-semibold">Edit Employee</h2>
         </div>
       </div>
       <form onSubmit={handleSubmit} className="space-y-6 py-4">
@@ -457,7 +353,12 @@ const CreateEmployee = () => {
               />
               {employeePhotoFile && (
                 <p className="text-xs text-green-600">
-                  ✓ Photo selected: {employeePhotoFile.name}
+                  ✓ New photo selected: {employeePhotoFile.name}
+                </p>
+              )}
+              {!employeePhotoFile && existingPhotoUrl && (
+                <p className="text-xs text-blue-600">
+                  Current photo: {existingPhotoUrl}
                 </p>
               )}
             </div>
@@ -763,9 +664,14 @@ const CreateEmployee = () => {
                 onChange={handleCvChange}
                 className="text-sm"
               />
-              {cvUrl && (
+              {cvFile && (
                 <p className="text-xs text-green-600">
-                  ✓ CV selected: {cvUrl.name}
+                  ✓ New CV selected: {cvFile.name}
+                </p>
+              )}
+              {!cvFile && existingCvUrl && (
+                <p className="text-xs text-blue-600">
+                  Current CV: {existingCvUrl}
                 </p>
               )}
             </div>
@@ -817,7 +723,9 @@ const CreateEmployee = () => {
 
         {/* Leave Types — multi-select checkboxes */}
         <div className="border p-8 rounded-lg bg-slate-100">
-          <h3 className="text-md font-semibold mb-4">Leave Types ({currentYear})</h3>
+          <h3 className="text-md font-semibold mb-4">
+            Leave Types ({currentYear})
+          </h3>
           <div className="space-y-3">
             <Label>Select Leave Types</Label>
             <div className="grid gap-3 md:grid-cols-3">
@@ -897,111 +805,15 @@ const CreateEmployee = () => {
         )}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={resetForm}>
-            Reset Fields
+            Cancel
           </Button>
-          <Button type="submit" disabled={addMutation.isPending}>
-            {addMutation.isPending ? 'Creating...' : 'Create Employee'}
+          <Button type="submit" disabled={updateMutation.isPending}>
+            {updateMutation.isPending ? 'Updating...' : 'Update Employee'}
           </Button>
         </div>
       </form>
-
-      {/* Bulk Import Popup */}
-      <Popup
-        isOpen={isImportPopupOpen}
-        onClose={() => setIsImportPopupOpen(false)}
-        title="Import Employees from Excel"
-        size="sm:max-w-3xl"
-      >
-        <div className="py-4">
-          <div className="mb-4 p-4 bg-amber-50 rounded-md">
-            <h3 className="font-semibold mb-2">Excel Format Requirements:</h3>
-            <p className="text-sm text-gray-700 mb-2">
-              Your Excel file should have the following columns:
-            </p>
-            <ul className="text-sm text-gray-700 list-disc list-inside space-y-1">
-              <li>
-                <strong>FullName</strong> - Full name of employee (required)
-              </li>
-              <li>
-                <strong>Email</strong> - Email address (required)
-              </li>
-              <li>
-                <strong>OfficialPhone</strong> - Official phone number
-                (required)
-              </li>
-              <li>
-                <strong>PersonalPhone</strong> - Personal phone number
-                (optional)
-              </li>
-              <li>
-                <strong>PresentAddress</strong> - Present address (required)
-              </li>
-              <li>
-                <strong>PermanentAddress</strong> - Permanent address (optional)
-              </li>
-              <li>
-                <strong>EmergencyContactName</strong> - Emergency contact name
-                (optional)
-              </li>
-              <li>
-                <strong>EmergencyContactPhone</strong> - Emergency contact phone
-                (optional)
-              </li>
-              <li>
-                <strong>DOB</strong> - Date of birth in YYYY-MM-DD format
-                (required)
-              </li>
-              <li>
-                <strong>DOJ</strong> - Date of joining in YYYY-MM-DD format
-                (required)
-              </li>
-              <li>
-                <strong>Gender</strong> - Male or Female (required)
-              </li>
-              <li>
-                <strong>BloodGroup</strong> - Blood group (optional)
-              </li>
-              <li>
-                <strong>BasicSalary</strong> - Basic salary amount (required)
-              </li>
-              <li>
-                <strong>GrossSalary</strong> - Gross salary amount (required)
-              </li>
-              <li>
-                <strong>EmpCode</strong> - Employee code (required)
-              </li>
-              <li>
-                <strong>DepartmentId</strong> - Department ID (required)
-              </li>
-              <li>
-                <strong>DesignationId</strong> - Designation ID (required)
-              </li>
-              <li>
-                <strong>EmployeeTypeId</strong> - Employee Type ID (required)
-              </li>
-              <li>
-                <strong>LeaveTypeIds</strong> - Comma-separated leave type IDs
-                (e.g., &quot;1,2,3&quot;) (optional)
-              </li>
-              <li>
-                <strong>OfficeTimingId</strong> - Office timing ID (optional)
-              </li>
-            </ul>
-            <p className="text-sm text-gray-700 mt-3">
-              <strong>Tip:</strong> Download the template first to see the
-              correct format!
-            </p>
-          </div>
-          <ExcelFileInput
-            onDataParsed={handleExcelDataParsed}
-            onSubmit={handleExcelSubmit}
-            submitButtonText="Import Employees"
-            dateColumns={['DOB', 'DOJ']}
-          />
-        </div>
-      </Popup>
     </div>
   )
 }
 
-export default CreateEmployee
+export default EditEmployee
