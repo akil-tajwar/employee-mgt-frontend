@@ -204,3 +204,20 @@ export const assignLeaveTypeSchema = z.object({
   leaveTypeIds: z.array(z.number()).min(1),
 })
 export type AssignLeaveTypeType = z.infer<typeof assignLeaveTypeSchema>
+
+export const otherSalaryComponentSchema = z.object({
+  otherSalaryComponentId: z.number().optional(),
+  componentName: z.string(),
+  componentType: z.enum(['Allowance', 'Deduction']),
+  status: z.number(),
+  createdBy: z.number(),
+  createdAt: z.number().optional(),
+  updatedBy: z.number().optional(),
+  updatedAt: z.number().optional(),
+})
+export type CreateOtherSalaryComponentType = z.infer<
+  typeof otherSalaryComponentSchema
+>
+export type GetOtherSalaryComponentType = z.infer<
+  typeof otherSalaryComponentSchema
+>

@@ -9,6 +9,7 @@ import {
   CreateHolidayType,
   CreateLeaveTypeType,
   CreateOfficeTimingType,
+  CreateOtherSalaryComponentType,
   GetDepartmentType,
   GetDesignationType,
   GetEmployeeAttendanceType,
@@ -17,6 +18,7 @@ import {
   GetHolidayType,
   GetLeaveTypeType,
   GetOfficeTimingType,
+  GetOtherSalaryComponentType,
   GetWeekendType,
   SignInRequest,
   SignInResponse,
@@ -491,6 +493,60 @@ export async function editEmployeeAttendance(
 export async function deleteEmployeeAttendance(id: number, token: string) {
   return fetchApi<{ id: number }>({
     url: `api/employeeAttendances/delete/${id}`,
+    method: 'DELETE',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+//other salary related components
+export async function getAllOtherSalaryComponents(token: string) {
+  return fetchApi<GetOtherSalaryComponentType[]>({
+    url: 'api/otherSalaryComponents/getall',
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function createOtherSalaryComponent(
+  data: CreateOtherSalaryComponentType,
+  token: string
+) {
+  return fetchApi<CreateOtherSalaryComponentType>({
+    url: 'api/otherSalaryComponents/create',
+    method: 'POST',
+    body: data,
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function editOtherSalaryComponent(
+  id: number,
+  data: GetOtherSalaryComponentType,
+  token: string
+) {
+  return fetchApi<GetOtherSalaryComponentType>({
+    url: `api/otherSalaryComponents/edit/${id}`,
+    method: 'PATCH',
+    body: data,
+    headers: {
+      Authorization: `${token}`,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function deleteOtherSalaryComponent(id: number, token: string) {
+  return fetchApi<{ id: number }>({
+    url: `api/otherSalaryComponents/delete/${id}`,
     method: 'DELETE',
     headers: {
       Authorization: token,
