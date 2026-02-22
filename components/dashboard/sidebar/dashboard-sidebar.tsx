@@ -5,6 +5,7 @@ import Link from 'next/link'
 import {
   BriefcaseBusiness,
   ChevronDown,
+  DollarSign,
   FileChartColumn,
   Home,
   NotebookText,
@@ -32,6 +33,8 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from '@/components/ui/sidebar'
+import { title } from 'process'
+import { hr } from 'date-fns/locale'
 
 export function DashboardSidebar() {
   const pathname = usePathname()
@@ -75,7 +78,7 @@ export function DashboardSidebar() {
     },
     {
       title: 'Employee Management',
-      icon: BriefcaseBusiness,
+      icon: UserCog,
       href: '/dashboard/employee-management',
       subItems: [
         {
@@ -93,26 +96,41 @@ export function DashboardSidebar() {
       ],
     },
     {
+      title: 'Salary Management',
+      icon: DollarSign,
+      href: '/dashboard/salary-management',
+      subItems: [
+        {
+          title: 'Other Salary Components',
+          href: '/dashboard/salary-management/other-salary-components',
+        },
+        {
+          title: 'Salary',
+          href: '/dashboard/salary-management/salary',
+        }
+      ],
+    },
+    {
       title: 'Reports',
       icon: FileChartColumn,
       href: '/dashboard/report',
       subItems: [
-        {
-          title: 'Cash Report',
-          href: '/dashboard/report/cash-report',
-        },
-        {
-          title: 'Party Report',
-          href: '/dashboard/report/party-report',
-        },
-        {
-          title: 'Stock Ledger',
-          href: '/dashboard/report/stock-ledger',
-        },
-        {
-          title: 'Loan Report',
-          href: '/dashboard/report/loan-report',
-        },
+        // {
+        //   title: 'Cash Report',
+        //   href: '/dashboard/report/cash-report',
+        // },
+        // {
+        //   title: 'Party Report',
+        //   href: '/dashboard/report/party-report',
+        // },
+        // {
+        //   title: 'Stock Ledger',
+        //   href: '/dashboard/report/stock-ledger',
+        // },
+        // {
+        //   title: 'Loan Report',
+        //   href: '/dashboard/report/loan-report',
+        // },
       ],
     },
   ]

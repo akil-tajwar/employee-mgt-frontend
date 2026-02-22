@@ -51,6 +51,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import Link from 'next/link'
 
 const Employees = () => {
   useInitializeUser()
@@ -380,7 +381,12 @@ const Employees = () => {
               >
                 Email <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
-              <TableHead>Phone</TableHead>
+              <TableHead
+                onClick={() => handleSort('officialPhone')}
+                className="cursor-pointer"
+              >
+                Official Phone <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              </TableHead>
               <TableHead
                 onClick={() => handleSort('departmentId')}
                 className="cursor-pointer"
@@ -441,17 +447,15 @@ const Employees = () => {
                   <TableCell>{getDesignationName(emp.designationId)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-amber-600 hover:text-amber-700"
-                        onClick={() => {
-                          // Handle edit - you can implement this later
-                          console.log('Edit employee:', emp.employeeId)
-                        }}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
+                      <Link href={`/dashboard/employee-management/edit-employee/${emp.employeeId}`}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-amber-600 hover:text-amber-700"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      </Link>
                       <Button
                         variant="ghost"
                         size="sm"

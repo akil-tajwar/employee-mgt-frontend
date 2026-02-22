@@ -482,20 +482,20 @@ const EmployeeAttendances = () => {
                       <TableHead className="w-20">Sl No.</TableHead>
                       <TableHead
                         onClick={() => handleSort('employeeName')}
-                        className="cursor-pointer hover:bg-amber-100 transition-colors"
+                        className="cursor-pointer transition-colors"
                       >
                         Employee Name
                         <ArrowUpDown className="ml-2 h-4 w-4 inline" />
                       </TableHead>
                       <TableHead
                         onClick={() => handleSort('inTime')}
-                        className="cursor-pointer hover:bg-amber-100 transition-colors"
+                        className="cursor-pointer transition-colors"
                       >
                         In Time <ArrowUpDown className="ml-2 h-4 w-4 inline" />
                       </TableHead>
                       <TableHead
                         onClick={() => handleSort('outTime')}
-                        className="cursor-pointer hover:bg-amber-100 transition-colors"
+                        className="cursor-pointer transition-colors"
                       >
                         Out Time <ArrowUpDown className="ml-2 h-4 w-4 inline" />
                       </TableHead>
