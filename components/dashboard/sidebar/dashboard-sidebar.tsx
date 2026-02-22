@@ -105,10 +105,6 @@ export function DashboardSidebar() {
           href: '/dashboard/salary-management/other-salary-components',
         },
         {
-          title: 'Employee Other Salary Components',
-          href: '/dashboard/salary-management/employee-other-salary-components',
-        },
-        {
           title: 'Salary',
           href: '/dashboard/salary-management/salary',
         }

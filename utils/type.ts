@@ -221,3 +221,43 @@ export type CreateOtherSalaryComponentType = z.infer<
 export type GetOtherSalaryComponentType = z.infer<
   typeof otherSalaryComponentSchema
 >
+
+export const salarySchema = z.object({
+  salary: z.object({
+    salaryMonth: z.string(),
+    salaryYear: z.number(),
+    employeeId: z.number(),
+    employeeName: z.string().optional(), // only for get
+    departmentId: z.number(),
+    departmentName: z.string().optional(), //only for get
+    designationId: z.number(),
+    designationName: z.string().optional(), //only for get
+    basicSalary: z.number(),
+    grossSalary: z.number(),
+    netSalary: z.number(),
+    doj: z.string(),
+    createdBy: z.number(),
+    createdAt: z.number().optional(),
+    updatedBy: z.number().optional(),
+    updatedAt: z.number().optional(),
+  }),
+
+  otherSalary: z.array(
+    z.object({
+      employeeId: z.number(),
+      employeeName: z.string().optional(),
+      otherSalaryComponentId: z.number(),
+      componentName: z.string().optional(), //only for get
+      componentType: z.enum(['Allowance', 'Deduction']).optional(), //only for get
+      salaryMonth: z.string(),
+      salaryYear: z.number(),
+      amount: z.number(),
+      createdBy: z.number(),
+      createdAt: z.number().optional(),
+      updatedBy: z.number().optional(),
+      updatedAt: z.number().optional(),
+    })
+  ),
+})
+export type CreateSalaryType = z.infer<typeof salarySchema>
+export type GetSalaryType = z.infer<typeof salarySchema>

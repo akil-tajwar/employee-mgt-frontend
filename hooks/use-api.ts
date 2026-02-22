@@ -13,6 +13,7 @@ import {
   createLeaveType,
   createOfficeTimingWeekend,
   createOtherSalaryComponent,
+  createSalary,
   deleteDepartment,
   deleteDesignation,
   deleteEmployee,
@@ -22,6 +23,7 @@ import {
   deleteLeaveType,
   deleteOfficeTimingWeekend,
   deleteOtherSalaryComponent,
+  deleteSalary,
   editDepartment,
   editDesignation,
   editEmployee,
@@ -31,6 +33,7 @@ import {
   editLeaveType,
   editOfficeTimingWeekend,
   editOtherSalaryComponent,
+  editSalary,
   getAllDepartments,
   getAllDesignations,
   getAllEmployeeAttendances,
@@ -40,6 +43,7 @@ import {
   getAllLeaveTypes,
   getAllOfficeTimingWeekends,
   getAllOtherSalaryComponents,
+  getAllSalaries,
   getAllWeekends,
   getEmployeeById,
 } from '@/utils/api'
@@ -53,6 +57,7 @@ import {
   CreateLeaveTypeType,
   CreateOfficeTimingType,
   CreateOtherSalaryComponentType,
+  CreateSalaryType,
   GetEmployeeAttendanceType,
   GetOfficeTimingType,
 } from '@/utils/type'
@@ -1108,6 +1113,7 @@ export const useDeleteEmployeeAttendance = ({
   return mutation
 }
 
+//other salary components
 export const useGetOtherSalaryComponents = () => {
   const [token] = useAtom(tokenAtom)
   useInitializeUser()
@@ -1215,6 +1221,126 @@ export const useDeleteOtherSalaryComponent = ({
         description: 'other salary component is deleted successfully.',
       })
       queryClient.invalidateQueries({ queryKey: ['otherSalaryComponents'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error sending delete request:', error)
+    },
+  })
+
+  return mutation
+}
+
+//salary
+export const useGetSalaries = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['salaries'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getAllSalaries(token)
+    },
+    enabled: !!token,
+    select: (data) => data,
+  })
+}
+
+export const useAddSalary = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (data: CreateSalaryType) => {
+      return createSalary(data, token)
+    },
+    onSuccess: (data) => {
+      console.log('salary added successfully:', data)
+      queryClient.invalidateQueries({ queryKey: ['salaries'] })
+
+      // Reset form fields after success
+      reset()
+
+      // Close the form modal
+      onClose()
+    },
+    onError: (error) => {
+      // Handle error
+      console.error('Error adding salary:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useUpdateSalary = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: CreateSalaryType }) => {
+      return editSalary(id, data, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'salary edited successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['salaries'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error editing salary:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useDeleteSalary = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id }: { id: number }) => {
+      return deleteSalary(id, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'salary is deleted successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['salaries'] })
 
       reset()
       onClose()
