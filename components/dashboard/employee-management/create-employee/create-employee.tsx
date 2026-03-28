@@ -29,15 +29,66 @@ import type { CreateEmployeeType } from '@/utils/type'
 import { toast } from '@/hooks/use-toast'
 import ExcelFileInput from '@/utils/excel-file-input'
 import { Popup } from '@/utils/popup'
-import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { formatTime } from '@/utils/conversions'
+
+// ── Static column definitions ─────────────────────────────────────────────────
+const STATIC_COLUMNS = [
+  { header: 'Full Name', key: 'fullName', width: 24, required: true }, // A 1
+  { header: 'Email', key: 'email', width: 28, required: true }, // B 2
+  { header: 'Official Phone', key: 'officialPhone', width: 18, required: true }, // C 3
+  {
+    header: 'Personal Phone',
+    key: 'personalPhone',
+    width: 18,
+    required: false,
+  }, // D 4
+  {
+    header: 'Present Address',
+    key: 'presentAddress',
+    width: 30,
+    required: true,
+  }, // E 5
+  {
+    header: 'Permanent Address',
+    key: 'permanentAddress',
+    width: 30,
+    required: false,
+  }, // F 6
+  {
+    header: 'Emergency Contact Name',
+    key: 'emergencyContactName',
+    width: 24,
+    required: false,
+  }, // G 7
+  {
+    header: 'Emergency Contact Phone',
+    key: 'emergencyContactPhone',
+    width: 22,
+    required: false,
+  }, // H 8
+  { header: 'Date of Birth', key: 'dob', width: 14, required: true }, // I 9
+  { header: 'Date of Joining', key: 'doj', width: 14, required: true }, // J 10
+  { header: 'Gender', key: 'gender', width: 10, required: true }, // K 11
+  { header: 'Blood Group', key: 'bloodGroup', width: 12, required: false }, // L 12
+  { header: 'Basic Salary', key: 'basicSalary', width: 14, required: false }, // M 13
+  { header: 'Gross Salary', key: 'grossSalary', width: 14, required: true }, // N 14
+  { header: 'Employee Code', key: 'empCode', width: 16, required: true }, // O 15
+  { header: 'Department', key: 'departmentId', width: 30, required: true }, // P 16
+  { header: 'Designation', key: 'designationId', width: 30, required: true }, // Q 17
+  { header: 'Employee Type', key: 'employeeTypeId', width: 24, required: true }, // R 18
+  {
+    header: 'Office Timing',
+    key: 'officeTimingId',
+    width: 36,
+    required: false,
+  }, // S 19
+]
+// Leave-type columns appended dynamically starting at col 20
 
 const CreateEmployee = () => {
   useInitializeUser()
   const [userData] = useAtom(userDataAtom)
-  console.log('🚀 ~ CreateEmployee ~ userData:', userData)
-
   const router = useRouter()
 
   const { data: departments } = useGetDepartments()
@@ -45,14 +96,11 @@ const CreateEmployee = () => {
   const { data: employeeTypes } = useGetEmployeeTypes()
   const { data: officeTimingWeekends } = useGetOfficeTimingWeekends()
   const { data: leaveTypes } = useGetLeaveTypes()
-  console.log('🚀 ~ CreateEmployee ~ leaveTypes:', leaveTypes?.data)
 
   const currentYear = new Date().getFullYear()
-
   const currentYearLeaveTypes = leaveTypes?.data?.filter(
     (item) => item.yearPeriod === currentYear
   )
-  console.log("🚀 ~ CreateEmployee ~ currentYearLeaveTypes:", currentYearLeaveTypes)
 
   const [error, setError] = useState<string | null>(null)
   const [isPopupOpen, setIsPopupOpen] = useState(false)
@@ -93,21 +141,15 @@ const CreateEmployee = () => {
     createdBy: userData?.userId || 0,
   })
 
+  // ── Input handlers ──────────────────────────────────────────────────────────
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target as HTMLInputElement
-
     if (type === 'number') {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value ? Number(value) : null,
-      }))
+      setFormData((prev) => ({ ...prev, [name]: value ? Number(value) : null }))
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value || null,
-      }))
+      setFormData((prev) => ({ ...prev, [name]: value || null }))
     }
   }
 
@@ -115,9 +157,7 @@ const CreateEmployee = () => {
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = e.target.files?.[0]
-    if (file) {
-      setEmployeePhotoFile(file)
-    }
+    if (file) setEmployeePhotoFile(file)
   }
 
   const handleCvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,18 +183,13 @@ const CreateEmployee = () => {
 
   const handleSelectChange = (name: string, value: string) => {
     if (name === 'gender' || name === 'bloodGroup') {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value || null,
-      }))
+      setFormData((prev) => ({ ...prev, [name]: value || null }))
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value ? Number(value) : null,
-      }))
+      setFormData((prev) => ({ ...prev, [name]: value ? Number(value) : null }))
     }
   }
 
+  // ── Reset / close ───────────────────────────────────────────────────────────
   const resetForm = () => {
     setFormData({
       fullName: '',
@@ -195,18 +230,13 @@ const CreateEmployee = () => {
     router.push('/dashboard/employee-management/employees')
   }, [router])
 
-  const addMutation = useAddEmployee({
-    onClose: closePopup,
-    reset: resetForm,
-  })
+  const addMutation = useAddEmployee({ onClose: closePopup, reset: resetForm })
 
+  // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    console.log('=== FORM SUBMISSION START ===')
-    console.log('📋 Employee Details:', formData)
 
-    // Validations
     if (!formData.fullName.trim()) return setError('Please enter full name')
     if (!formData.email.trim()) return setError('Please enter email')
     if (!formData.officialPhone.trim())
@@ -226,150 +256,463 @@ const CreateEmployee = () => {
       return setError('Please select employee type')
 
     const form = new FormData()
-
-    const employeeDetailsPayload = {
-      ...formData,
-      photoUrl: null,
-      cvUrl: null,
-      createdBy: userData?.userId || 0,
-    }
-    console.log(
-      '📦 Employee Details Payload (without photo):',
-      employeeDetailsPayload
+    form.append(
+      'employeeDetails',
+      JSON.stringify({
+        ...formData,
+        photoUrl: null,
+        cvUrl: null,
+        createdBy: userData?.userId || 0,
+      })
     )
-    form.append('employeeDetails', JSON.stringify(employeeDetailsPayload))
-
-    if (employeePhotoFile) {
-      form.append('photoUrl', employeePhotoFile)
-      console.log(`✅ Appended photoUrl to FormData`)
-    }
-
-    if (cvUrl) {
-      form.append('cvUrl', cvUrl)
-      console.log(`✅ Appended cvUrl to FormData`)
-    }
-
-    console.log('📤 FormData contents:')
-    for (const pair of form.entries()) {
-      if (pair[1] instanceof File) {
-        console.log(
-          `  ${pair[0]}: [File] ${pair[1].name} (${pair[1].size} bytes)`
-        )
-      } else {
-        console.log(`  ${pair[0]}: ${pair[1]}`)
-      }
-    }
-    console.log('=== FORM SUBMISSION END ===')
+    if (employeePhotoFile) form.append('photoUrl', employeePhotoFile)
+    if (cvUrl) form.append('cvUrl', cvUrl)
 
     try {
       await addMutation.mutateAsync(form as any)
-      console.log('✅ Employee created successfully!')
       toast({
         title: 'Success!',
         description: 'Employee is added successfully.',
       })
     } catch (err) {
       setError('Failed to create employee')
-      console.error('❌ Error creating employee:', err)
+      console.error('Error creating employee:', err)
     }
   }
 
-  const handleDownloadTemplate = () => {
-    const templateData = [
-      {
-        FullName: '',
-        Email: '',
-        OfficialPhone: '',
-        PersonalPhone: '',
-        PresentAddress: '',
-        PermanentAddress: '',
-        EmergencyContactName: '',
-        EmergencyContactPhone: '',
-        DOB: '',
-        DOJ: '',
-        Gender: 'Male',
-        BloodGroup: '',
-        BasicSalary: '',
-        GrossSalary: '',
-        EmpCode: '',
-        DepartmentId: '',
-        DesignationId: '',
-        EmployeeTypeId: '',
-        LeaveTypeIds: '',
-        OfficeTimingId: '',
-      },
-    ]
+  // ── Download Template (ExcelJS — mirrors create-student pattern) ────────────
+  const handleDownloadTemplate = async () => {
+    const ExcelJS = (await import('exceljs')).default
+    const workbook = new ExcelJS.Workbook()
 
-    const worksheet = XLSX.utils.json_to_sheet(templateData)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Employee Template')
+    // ── 1. Build lookup lists ─────────────────────────────────────────────────
+    const allLeaves = currentYearLeaveTypes ?? []
 
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: 'xlsx',
-      type: 'array',
+    const departmentLabels = (departments?.data ?? []).map(
+      (d) => `${d.departmentName} | ${d.departmentId}`
+    )
+    const designationLabels = (designations?.data ?? []).map(
+      (d) => `${d.designationName} | ${d.designationId}`
+    )
+    const employeeTypeLabels = (employeeTypes?.data ?? []).map(
+      (t) => `${t.employeeTypeName} | ${t.employeeTypeId}`
+    )
+    const officeTimingLabels = (officeTimingWeekends?.data ?? []).map(
+      (t) =>
+        `${formatTime(t.startTime)} - ${formatTime(t.endTime)}${
+          t.weekends?.length ? ` (Off: ${t.weekends.join(', ')})` : ''
+        } | ${t.officeTimingId}`
+    )
+    const genderLabels = ['Male', 'Female']
+    const bloodGroupLabels = ['O+', 'A+', 'B+', 'AB+', 'O-', 'A-', 'B-', 'AB-']
+
+    // ── 2. Main sheet FIRST — SheetJS (used by ExcelFileInput) reads sheet[0] ──
+    // Lookup must come AFTER so the xlsx parser sees "Create Employees" first.
+    const sheet = workbook.addWorksheet('Create Employees')
+
+    sheet.columns = STATIC_COLUMNS.map(({ header, key, width }) => ({
+      header,
+      key,
+      width,
+    }))
+
+    // Dynamic leave-type columns (one per leave type)
+    // Header format: "Leave Type Name | Year (leaveTypeId)"
+    allLeaves.forEach((leave, idx) => {
+      const colHeader = `${leave.leaveTypeName} | ${leave.yearPeriod} (${leave.leaveTypeId})`
+      const colIdx = STATIC_COLUMNS.length + 1 + idx
+      sheet.getColumn(colIdx).width = 38
+      sheet.getColumn(colIdx).header = colHeader
     })
 
-    const blob = new Blob([excelBuffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8',
+    // ── 4. Style header row ───────────────────────────────────────────────────
+    const headerRow = sheet.getRow(1)
+
+    STATIC_COLUMNS.forEach(({ header, required }, idx) => {
+      const cell = headerRow.getCell(idx + 1)
+      cell.value = required
+        ? {
+            richText: [
+              {
+                text: header,
+                font: { bold: true, color: { argb: 'FF000000' } },
+              },
+              { text: ' *', font: { bold: true, color: { argb: 'FFDC2626' } } },
+            ],
+          }
+        : {
+            richText: [
+              {
+                text: header,
+                font: { bold: true, color: { argb: 'FF000000' } },
+              },
+            ],
+          }
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFBBF24' },
+      }
+      cell.alignment = { vertical: 'middle', horizontal: 'center' }
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' },
+      }
     })
 
+    allLeaves.forEach((leave, idx) => {
+      const colHeader = `${leave.leaveTypeName} | ${leave.yearPeriod} (${leave.leaveTypeId})`
+      const colIdx = STATIC_COLUMNS.length + 1 + idx
+      const cell = headerRow.getCell(colIdx)
+      cell.value = {
+        richText: [
+          {
+            text: colHeader,
+            font: { bold: true, color: { argb: 'FF000000' } },
+          },
+        ],
+      }
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFD1FAE5' },
+      } // light green for leave columns
+      cell.alignment = {
+        vertical: 'middle',
+        horizontal: 'center',
+        wrapText: true,
+      }
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' },
+      }
+    })
+
+    headerRow.height = 36
+
+    // ── 5. Hint row (row 2) ───────────────────────────────────────────────────
+    const hintRow = sheet.getRow(2)
+
+    STATIC_COLUMNS.forEach((_, idx) => {
+      const cell = hintRow.getCell(idx + 1)
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFEF9C3' },
+      }
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' },
+      }
+    })
+
+    allLeaves.forEach((leave, idx) => {
+      const colIdx = STATIC_COLUMNS.length + 1 + idx
+      const cell = hintRow.getCell(colIdx)
+      cell.value = `Yes = include  |  blank = skip  (${leave.totalLeaves} days)`
+      cell.font = { italic: true, size: 8, color: { argb: 'FF6B7280' } }
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF0FDF4' },
+      }
+      cell.alignment = { horizontal: 'center' }
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' },
+      }
+
+      // Yes/No dropdown validation on data rows
+      for (let row = 3; row <= 201; row++) {
+        sheet.getCell(row, colIdx).dataValidation = {
+          type: 'list',
+          allowBlank: true,
+          formulae: ['"Yes,No"'],
+        }
+      }
+    })
+
+    hintRow.height = 14
+
+    // ── 6. Per-row dropdowns (data rows start at 3) ───────────────────────────
+    for (let row = 3; row <= 201; row++) {
+      // P: Department
+      sheet.getCell(`P${row}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        showErrorMessage: true,
+        errorStyle: 'stop',
+        errorTitle: 'Invalid Department',
+        error: 'Please select a department from the dropdown.',
+        formulae: ['DepartmentList'],
+      }
+      // Q: Designation
+      sheet.getCell(`Q${row}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        showErrorMessage: true,
+        errorStyle: 'stop',
+        errorTitle: 'Invalid Designation',
+        error: 'Please select a designation from the dropdown.',
+        formulae: ['DesignationList'],
+      }
+      // R: Employee Type
+      sheet.getCell(`R${row}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        showErrorMessage: true,
+        errorStyle: 'stop',
+        errorTitle: 'Invalid Employee Type',
+        error: 'Please select an employee type from the dropdown.',
+        formulae: ['EmployeeTypeList'],
+      }
+      // S: Office Timing
+      sheet.getCell(`S${row}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: ['OfficeTimingList'],
+      }
+      // K: Gender
+      sheet.getCell(`K${row}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        showErrorMessage: true,
+        errorStyle: 'stop',
+        errorTitle: 'Invalid Gender',
+        error: 'Please select Male or Female.',
+        formulae: ['GenderList'],
+      }
+      // L: Blood Group
+      sheet.getCell(`L${row}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        showErrorMessage: true,
+        errorStyle: 'stop',
+        errorTitle: 'Invalid Blood Group',
+        error: 'Please select a valid blood group.',
+        formulae: ['BloodGroupList'],
+      }
+    }
+
+    // ── 7. Freeze top 2 rows + col A ─────────────────────────────────────────
+    // ── 7. Hidden Lookup sheet — created AFTER main sheet so SheetJS reads
+    // sheet index 0 ("Create Employees") and not this one when importing.
+    const lookupSheet = workbook.addWorksheet('Lookup')
+    lookupSheet.state = 'veryHidden'
+
+    // Col A — departments
+    departmentLabels.forEach((label, i) => {
+      lookupSheet.getCell(`A${i + 1}`).value = label
+    })
+    if (departmentLabels.length > 0)
+      workbook.definedNames.add(
+        `Lookup!$A$1:$A$${departmentLabels.length}`,
+        'DepartmentList'
+      )
+
+    // Col B — designations
+    designationLabels.forEach((label, i) => {
+      lookupSheet.getCell(`B${i + 1}`).value = label
+    })
+    if (designationLabels.length > 0)
+      workbook.definedNames.add(
+        `Lookup!$B$1:$B$${designationLabels.length}`,
+        'DesignationList'
+      )
+
+    // Col C — employee types
+    employeeTypeLabels.forEach((label, i) => {
+      lookupSheet.getCell(`C${i + 1}`).value = label
+    })
+    if (employeeTypeLabels.length > 0)
+      workbook.definedNames.add(
+        `Lookup!$C$1:$C$${employeeTypeLabels.length}`,
+        'EmployeeTypeList'
+      )
+
+    // Col D — office timings
+    officeTimingLabels.forEach((label, i) => {
+      lookupSheet.getCell(`D${i + 1}`).value = label
+    })
+    if (officeTimingLabels.length > 0)
+      workbook.definedNames.add(
+        `Lookup!$D$1:$D$${officeTimingLabels.length}`,
+        'OfficeTimingList'
+      )
+
+    // Col E — genders
+    genderLabels.forEach((g, i) => {
+      lookupSheet.getCell(`E${i + 1}`).value = g
+    })
+    workbook.definedNames.add('Lookup!$E$1:$E$2', 'GenderList')
+
+    // Col F — blood groups
+    bloodGroupLabels.forEach((bg, i) => {
+      lookupSheet.getCell(`F${i + 1}`).value = bg
+    })
+    workbook.definedNames.add('Lookup!$F$1:$F$8', 'BloodGroupList')
+
+    // ── 8. Freeze top 2 rows + col A
+    sheet.views = [{ state: 'frozen', xSplit: 1, ySplit: 2 }]
+
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
     saveAs(blob, 'create-employees-template.xlsx')
   }
 
+  // ── Parse & submit Excel data ───────────────────────────────────────────────
   const handleExcelDataParsed = (data: any[]) => {
     console.log('Excel data parsed:', data)
   }
 
   const handleExcelSubmit = async (data: any[]) => {
     try {
-      const employeesToCreate = data.map((row) => ({
-        fullName: row['FullName'] || '',
-        email: row['Email'] || '',
-        officialPhone: row['OfficialPhone'] || '',
-        personalPhone: row['PersonalPhone'] || null,
-        presentAddress: row['PresentAddress'] || '',
-        permanentAddress: row['PermanentAddress'] || null,
-        emergencyContactName: row['EmergencyContactName'] || null,
-        emergencyContactPhone: row['EmergencyContactPhone'] || null,
-        photoUrl: null,
-        cvUrl: null,
-        dob: row['DOB'] || '',
-        doj: row['DOJ'] || new Date().toISOString().split('T')[0],
-        gender: row['Gender'] || 'Male',
-        bloodGroup: row['BloodGroup'] || null,
-        basicSalary: row['BasicSalary'] ? Number(row['BasicSalary']) : 0,
-        grossSalary: row['GrossSalary'] ? Number(row['GrossSalary']) : 0,
-        isActive: 1,
-        empCode: row['EmpCode'] || '',
-        departmentId: row['DepartmentId'] ? Number(row['DepartmentId']) : 0,
-        designationId: row['DesignationId'] ? Number(row['DesignationId']) : 0,
-        employeeTypeId: row['EmployeeTypeId']
-          ? Number(row['EmployeeTypeId'])
-          : 0,
-        createdBy: userData?.userId || 0,
-        leaveTypeIds: row['LeaveTypeIds']
-          ? row['LeaveTypeIds']
-              .toString()
-              .split(',')
-              .map((id: string) => Number(id.trim()))
-              .filter((id: number) => !isNaN(id))
-          : [],
-        officeTimingId: row['OfficeTimingId']
-          ? Number(row['OfficeTimingId'])
-          : null,
-      }))
+      const allLeaves = currentYearLeaveTypes ?? []
 
-      console.log('Employees to create:', employeesToCreate)
+      // Strip trailing " *" from richText-concatenated headers
+      const normalizeKey = (k: string) => k.trim().replace(/\s*\*$/, '')
+
+      // Filter out hint row and empty rows
+      const validRows = data.filter((row) => {
+        const keys = Object.keys(row).filter((k) => k !== '__EMPTY')
+        if (keys.length === 0) return false
+
+        const allHint = keys.every((k) =>
+          String(row[k] ?? '')
+            .trim()
+            .startsWith('Yes = include')
+        )
+        if (allHint) return false
+
+        // Must have a non-empty Full Name or Employee Code
+        const nameKey = keys.find((k) => normalizeKey(k) === 'Full Name')
+        const codeKey = keys.find((k) => normalizeKey(k) === 'Employee Code')
+        return (
+          (nameKey && String(row[nameKey] ?? '').trim()) ||
+          (codeKey && String(row[codeKey] ?? '').trim())
+        )
+      })
+
+      const employeesToCreate = validRows.map((row) => {
+        const keys = Object.keys(row).filter((k) => k !== '__EMPTY')
+
+        const get = (colHeader: string) => {
+          const key = keys.find((k) => normalizeKey(k) === colHeader.trim())
+          return key ? row[key] : undefined
+        }
+
+        // ── Parse Department label: "Name | id" ──────────────────────────────
+        const deptLabel = String(get('Department') ?? '')
+        const deptParts = deptLabel.split(' | ')
+        const departmentId =
+          deptParts.length >= 2 ? Number(deptParts[deptParts.length - 1]) : null
+
+        // ── Parse Designation label ───────────────────────────────────────────
+        const desigLabel = String(get('Designation') ?? '')
+        const desigParts = desigLabel.split(' | ')
+        const designationId =
+          desigParts.length >= 2
+            ? Number(desigParts[desigParts.length - 1])
+            : null
+
+        // ── Parse Employee Type label ─────────────────────────────────────────
+        const etLabel = String(get('Employee Type') ?? '')
+        const etParts = etLabel.split(' | ')
+        const employeeTypeId =
+          etParts.length >= 2 ? Number(etParts[etParts.length - 1]) : null
+
+        // ── Parse Office Timing label ─────────────────────────────────────────
+        // Format: "HH:MM - HH:MM (Off: ...) | officeTimingId"
+        const otLabel = String(get('Office Timing') ?? '')
+        const otParts = otLabel.split(' | ')
+        const officeTimingId =
+          otParts.length >= 2 ? Number(otParts[otParts.length - 1]) : null
+
+        // ── Collect selected leave types from per-leave columns ───────────────
+        // Column header format: "Leave Type Name | Year (leaveTypeId)"
+        const leaveTypeIds: number[] = []
+
+        for (const leave of allLeaves) {
+          const colHeader = `${leave.leaveTypeName} | ${leave.yearPeriod} (${leave.leaveTypeId})`
+          const matchedKey = keys.find(
+            (k) => normalizeKey(k) === colHeader.trim()
+          )
+
+          if (matchedKey) {
+            const cellValue = String(row[matchedKey] ?? '')
+              .trim()
+              .toLowerCase()
+            if (['yes', 'y', '1', 'true'].includes(cellValue)) {
+              leaveTypeIds.push(leave.leaveTypeId!)
+            }
+          }
+        }
+
+        // ── Normalize dates ───────────────────────────────────────────────────
+        const normalizeDate = (raw: any): string => {
+          if (!raw) return ''
+          const s = String(raw)
+          if (s.includes('-')) return s
+          const d = new Date(s)
+          return !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : s
+        }
+
+        return {
+          fullName: String(get('Full Name') ?? ''),
+          email: String(get('Email') ?? ''),
+          officialPhone: String(get('Official Phone') ?? ''),
+          personalPhone: get('Personal Phone')
+            ? String(get('Personal Phone'))
+            : null,
+          presentAddress: String(get('Present Address') ?? ''),
+          permanentAddress: get('Permanent Address')
+            ? String(get('Permanent Address'))
+            : null,
+          emergencyContactName: get('Emergency Contact Name')
+            ? String(get('Emergency Contact Name'))
+            : null,
+          emergencyContactPhone: get('Emergency Contact Phone')
+            ? String(get('Emergency Contact Phone'))
+            : null,
+          photoUrl: null,
+          cvUrl: null,
+          dob: normalizeDate(get('Date of Birth')),
+          doj:
+            normalizeDate(get('Date of Joining')) ||
+            new Date().toISOString().split('T')[0],
+          gender: String(get('Gender') ?? 'Male'),
+          bloodGroup: get('Blood Group') ? String(get('Blood Group')) : null,
+          basicSalary: get('Basic Salary') ? Number(get('Basic Salary')) : 0,
+          grossSalary: get('Gross Salary') ? Number(get('Gross Salary')) : 0,
+          isActive: 1,
+          empCode: String(get('Employee Code') ?? ''),
+          departmentId: departmentId && !isNaN(departmentId) ? departmentId : 0,
+          designationId:
+            designationId && !isNaN(designationId) ? designationId : 0,
+          employeeTypeId:
+            employeeTypeId && !isNaN(employeeTypeId) ? employeeTypeId : 0,
+          officeTimingId:
+            officeTimingId && !isNaN(officeTimingId) ? officeTimingId : null,
+          leaveTypeIds,
+          createdBy: userData?.userId || 0,
+        }
+      })
+
+      console.log('Employees to create from Excel:', employeesToCreate)
 
       for (const employee of employeesToCreate) {
         const form = new FormData()
-        const employeeDetailsPayload = {
-          ...employee,
-          photoUrl: null,
-          cvUrl: null,
-        }
-        form.append('employeeDetails', JSON.stringify(employeeDetailsPayload))
-
+        form.append('employeeDetails', JSON.stringify(employee))
         await addMutation.mutateAsync(form as any)
       }
 
@@ -393,10 +736,11 @@ const CreateEmployee = () => {
   useEffect(() => {
     if (addMutation.error) {
       setError('Error creating employee')
-      console.error('❌ Mutation error:', addMutation.error)
+      console.error('Mutation error:', addMutation.error)
     }
   }, [addMutation.error])
 
+  // ── JSX ─────────────────────────────────────────────────────────────────────
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -425,6 +769,7 @@ const CreateEmployee = () => {
           </Button>
         </div>
       </div>
+
       <form onSubmit={handleSubmit} className="space-y-6 py-4">
         {/* Personal Information */}
         <div className="border p-8 rounded-lg bg-slate-100">
@@ -443,7 +788,6 @@ const CreateEmployee = () => {
                 required
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="employeePhoto" className="text-sm">
                 Employee Photo
@@ -725,7 +1069,6 @@ const CreateEmployee = () => {
                 placeholder="Select employee type"
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="dob">
                 Date of Birth <span className="text-red-500">*</span>
@@ -777,11 +1120,7 @@ const CreateEmployee = () => {
                 items={
                   officeTimingWeekends?.data?.map((timing) => ({
                     id: timing.officeTimingId?.toString() || '0',
-                    name: `${formatTime(timing.startTime)} - ${formatTime(timing.endTime)}${
-                      timing.weekends?.length
-                        ? ` (Off: ${timing.weekends.join(', ')})`
-                        : ''
-                    }`,
+                    name: `${formatTime(timing.startTime)} - ${formatTime(timing.endTime)}${timing.weekends?.length ? ` (Off: ${timing.weekends.join(', ')})` : ''}`,
                   })) || []
                 }
                 value={
@@ -793,11 +1132,7 @@ const CreateEmployee = () => {
                             (t) => t.officeTimingId === formData.officeTimingId
                           )
                           return t
-                            ? `${formatTime(t.startTime)} - ${formatTime(t.endTime)}${
-                                t.weekends?.length
-                                  ? ` (Off: ${t.weekends.join(', ')})`
-                                  : ''
-                              }`
+                            ? `${formatTime(t.startTime)} - ${formatTime(t.endTime)}${t.weekends?.length ? ` (Off: ${t.weekends.join(', ')})` : ''}`
                             : ''
                         })(),
                       }
@@ -815,9 +1150,11 @@ const CreateEmployee = () => {
           </div>
         </div>
 
-        {/* Leave Types — multi-select checkboxes */}
+        {/* Leave Types */}
         <div className="border p-8 rounded-lg bg-slate-100">
-          <h3 className="text-md font-semibold mb-4">Leave Types ({currentYear})</h3>
+          <h3 className="text-md font-semibold mb-4">
+            Leave Types ({currentYear})
+          </h3>
           <div className="space-y-3">
             <Label>Select Leave Types</Label>
             <div className="grid gap-3 md:grid-cols-3">
@@ -895,6 +1232,7 @@ const CreateEmployee = () => {
             {error}
           </div>
         )}
+
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={resetForm}>
             Reset Fields
@@ -913,90 +1251,39 @@ const CreateEmployee = () => {
         size="sm:max-w-3xl"
       >
         <div className="py-4">
-          <div className="mb-4 p-4 bg-amber-50 rounded-md">
-            <h3 className="font-semibold mb-2">Excel Format Requirements:</h3>
-            <p className="text-sm text-gray-700 mb-2">
-              Your Excel file should have the following columns:
+          <div className="mb-4 p-4 bg-amber-50 rounded-md text-sm text-gray-700 space-y-1">
+            <p className="font-semibold">How to use:</p>
+            <p>
+              1. Click <strong>Download Template</strong> to get the Excel file
+              with dropdowns pre-filled from your data.
             </p>
-            <ul className="text-sm text-gray-700 list-disc list-inside space-y-1">
-              <li>
-                <strong>FullName</strong> - Full name of employee (required)
-              </li>
-              <li>
-                <strong>Email</strong> - Email address (required)
-              </li>
-              <li>
-                <strong>OfficialPhone</strong> - Official phone number
-                (required)
-              </li>
-              <li>
-                <strong>PersonalPhone</strong> - Personal phone number
-                (optional)
-              </li>
-              <li>
-                <strong>PresentAddress</strong> - Present address (required)
-              </li>
-              <li>
-                <strong>PermanentAddress</strong> - Permanent address (optional)
-              </li>
-              <li>
-                <strong>EmergencyContactName</strong> - Emergency contact name
-                (optional)
-              </li>
-              <li>
-                <strong>EmergencyContactPhone</strong> - Emergency contact phone
-                (optional)
-              </li>
-              <li>
-                <strong>DOB</strong> - Date of birth in YYYY-MM-DD format
-                (required)
-              </li>
-              <li>
-                <strong>DOJ</strong> - Date of joining in YYYY-MM-DD format
-                (required)
-              </li>
-              <li>
-                <strong>Gender</strong> - Male or Female (required)
-              </li>
-              <li>
-                <strong>BloodGroup</strong> - Blood group (optional)
-              </li>
-              <li>
-                <strong>BasicSalary</strong> - Basic salary amount (required)
-              </li>
-              <li>
-                <strong>GrossSalary</strong> - Gross salary amount (required)
-              </li>
-              <li>
-                <strong>EmpCode</strong> - Employee code (required)
-              </li>
-              <li>
-                <strong>DepartmentId</strong> - Department ID (required)
-              </li>
-              <li>
-                <strong>DesignationId</strong> - Designation ID (required)
-              </li>
-              <li>
-                <strong>EmployeeTypeId</strong> - Employee Type ID (required)
-              </li>
-              <li>
-                <strong>LeaveTypeIds</strong> - Comma-separated leave type IDs
-                (e.g., &quot;1,2,3&quot;) (optional)
-              </li>
-              <li>
-                <strong>OfficeTimingId</strong> - Office timing ID (optional)
-              </li>
-            </ul>
-            <p className="text-sm text-gray-700 mt-3">
-              <strong>Tip:</strong> Download the template first to see the
-              correct format!
+            <p>
+              2. Select <strong>Department</strong>,{' '}
+              <strong>Designation</strong>, <strong>Employee Type</strong>, and{' '}
+              <strong>Office Timing</strong> from the built-in dropdowns — IDs
+              are extracted automatically on import.
+            </p>
+            <p>
+              3. For <strong>Leave Types</strong>, each leave type has its own
+              column (shown in green). Type <strong>Yes</strong> (or select from
+              dropdown) in any leave type column to assign it to the employee.
+              Leave blank to skip.
+            </p>
+            <p>
+              4. Fields marked with a red{' '}
+              <span className="text-red-500 font-bold">*</span> in the template
+              are required.
+            </p>
+            <p className="text-xs text-gray-500 pt-1">
+              Only leave types for <strong>{currentYear}</strong> are shown.
+              Leave type columns display the total days allowed.
             </p>
           </div>
           <ExcelFileInput
             onDataParsed={handleExcelDataParsed}
             onSubmit={handleExcelSubmit}
             submitButtonText="Import Employees"
-            dateColumns={['DOB', 'DOJ']}
+            dateColumns={['Date of Birth', 'Date of Joining']}
           />
         </div>
       </Popup>
