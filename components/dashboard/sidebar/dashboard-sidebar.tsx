@@ -115,22 +115,10 @@ export function DashboardSidebar() {
       icon: FileChartColumn,
       href: '/dashboard/report',
       subItems: [
-        // {
-        //   title: 'Cash Report',
-        //   href: '/dashboard/report/cash-report',
-        // },
-        // {
-        //   title: 'Party Report',
-        //   href: '/dashboard/report/party-report',
-        // },
-        // {
-        //   title: 'Stock Ledger',
-        //   href: '/dashboard/report/stock-ledger',
-        // },
-        // {
-        //   title: 'Loan Report',
-        //   href: '/dashboard/report/loan-report',
-        // },
+        {
+          title: 'Salary Report',
+          href: '/dashboard/report/salary-report',
+        },
       ],
     },
   ]
