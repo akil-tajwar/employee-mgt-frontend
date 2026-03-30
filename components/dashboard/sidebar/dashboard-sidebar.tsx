@@ -119,6 +119,10 @@ export function DashboardSidebar() {
           title: 'Salary Report',
           href: '/dashboard/report/salary-report',
         },
+        {
+          title: 'Attendance Report',
+          href: '/dashboard/report/attendance-report',
+        },
       ],
     },
   ]

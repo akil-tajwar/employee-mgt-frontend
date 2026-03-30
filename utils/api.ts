@@ -617,3 +617,18 @@ export async function getSalaryReport(
     },
   })
 }
+
+export async function getAttendanceReport(
+  fromDate: string,
+  toDate: string,
+  token: string
+) {
+  return fetchApi<GetEmployeeAttendanceType[]>({
+    url: `api/reports/attendance-report?fromDate=${fromDate}&toDate=${toDate}`,
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}

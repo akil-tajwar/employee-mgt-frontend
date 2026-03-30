@@ -45,6 +45,7 @@ import {
   getAllOtherSalaryComponents,
   getAllSalaries,
   getAllWeekends,
+  getAttendanceReport,
   getEmployeeById,
   getSalaryReport,
 } from '@/utils/api'
@@ -1374,6 +1375,21 @@ export const useGetSalaryReport = (salaryMonth: string, salaryYear: number) => {
       return getSalaryReport(salaryMonth, salaryYear, token)
     },
     enabled: !!token && salaryMonth.length > 0 && salaryYear > 0,
+    select: (data) => data,
+  })
+}
+
+export const useGetAttendanceReport = (fromDate: string, toDate: string) => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['attendanceReport', fromDate, toDate],
+    queryFn: () => {
+      if (!token) throw new Error('Token not found')
+      return getAttendanceReport(fromDate, toDate, token)
+    },
+    enabled: !!token && fromDate.length > 0 && toDate.length > 0,
     select: (data) => data,
   })
 }
