@@ -196,6 +196,9 @@ export type GetEmployeeAttendanceType = z.infer<
   typeof employeeAttendanceSchema
 > & {
   employeeName: string
+  empCode: string
+  designationName: string
+  departmentName: string
 }
 
 export const assignLeaveTypeSchema = z.object({

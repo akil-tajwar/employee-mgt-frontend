@@ -287,10 +287,7 @@ export async function getEmployeeById(token: string, id: number) {
   })
 }
 
-export async function createEmployee(
-  formData: FormData,
-  token: string
-) {
+export async function createEmployee(formData: FormData, token: string) {
   return fetchApiWithFile<CreateEmployeeType>({
     url: 'api/employees/create',
     method: 'POST',
@@ -354,10 +351,7 @@ export async function getAllHolidays(token: string) {
   })
 }
 
-export async function createHoliday(
-  data: CreateHolidayType,
-  token: string
-) {
+export async function createHoliday(data: CreateHolidayType, token: string) {
   return fetchApi<CreateHolidayType>({
     url: 'api/holidays/create',
     method: 'POST',
@@ -569,10 +563,7 @@ export async function getAllSalaries(token: string) {
   })
 }
 
-export async function createSalary(
-  data: CreateSalaryType,
-  token: string
-) {
+export async function createSalary(data: CreateSalaryType, token: string) {
   return fetchApi<CreateSalaryType>({
     url: 'api/salary/create',
     method: 'POST',
@@ -604,6 +595,37 @@ export async function deleteSalary(id: number, token: string) {
   return fetchApi<{ id: number }>({
     url: `api/salary/delete/${id}`,
     method: 'DELETE',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+//reports
+export async function getSalaryReport(
+  salaryMonthy: string,
+  salaryYear: number,
+  token: string
+) {
+  return fetchApi<GetSalaryType[]>({
+    url: `api/reports/salary-report?salaryMonth=${salaryMonthy}&salaryYear=${salaryYear}`,
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function getAttendanceReport(
+  fromDate: string,
+  toDate: string,
+  token: string
+) {
+  return fetchApi<GetEmployeeAttendanceType[]>({
+    url: `api/reports/attendance-report?fromDate=${fromDate}&toDate=${toDate}`,
+    method: 'GET',
     headers: {
       Authorization: token,
       'Content-Type': 'application/json',

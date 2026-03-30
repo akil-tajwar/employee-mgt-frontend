@@ -45,7 +45,9 @@ import {
   getAllOtherSalaryComponents,
   getAllSalaries,
   getAllWeekends,
+  getAttendanceReport,
   getEmployeeById,
+  getSalaryReport,
 } from '@/utils/api'
 import {
   AssignLeaveTypeType,
@@ -1019,10 +1021,12 @@ export const useAddEmployeeAttendance = ({
         // Backend returned something unexpected
         console.warn('⚠ Unexpected response from server:', response)
         toast({
-        title: 'Error!',
-        variant: 'destructive',
-        description: (response?.error?.details as any)?.message || 'Failed to add employee attendance.',
-      })
+          title: 'Error!',
+          variant: 'destructive',
+          description:
+            (response?.error?.details as any)?.message ||
+            'Failed to add employee attendance.',
+        })
       }
     },
 
@@ -1031,7 +1035,7 @@ export const useAddEmployeeAttendance = ({
       toast({
         title: 'Error!',
         variant: 'destructive',
-        description: 'Failed to add employee attendance.'
+        description: 'Failed to add employee attendance.',
       })
     },
   })
@@ -1178,7 +1182,13 @@ export const useUpdateOtherSalaryComponent = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: CreateOtherSalaryComponentType }) => {
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number
+      data: CreateOtherSalaryComponentType
+    }) => {
       return editOtherSalaryComponent(id, data, token)
     },
     onSuccess: () => {
@@ -1351,4 +1361,35 @@ export const useDeleteSalary = ({
   })
 
   return mutation
+}
+
+//reports
+export const useGetSalaryReport = (salaryMonth: string, salaryYear: number) => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['salaryReport', salaryMonth, salaryYear],
+    queryFn: () => {
+      if (!token) throw new Error('Token not found')
+      return getSalaryReport(salaryMonth, salaryYear, token)
+    },
+    enabled: !!token && salaryMonth.length > 0 && salaryYear > 0,
+    select: (data) => data,
+  })
+}
+
+export const useGetAttendanceReport = (fromDate: string, toDate: string) => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['attendanceReport', fromDate, toDate],
+    queryFn: () => {
+      if (!token) throw new Error('Token not found')
+      return getAttendanceReport(fromDate, toDate, token)
+    },
+    enabled: !!token && fromDate.length > 0 && toDate.length > 0,
+    select: (data) => data,
+  })
 }
