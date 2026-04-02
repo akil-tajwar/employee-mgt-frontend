@@ -35,6 +35,7 @@ export const UserSchema = z.object({
   updatedAt: z.number(),
   role: RoleSchema,
 })
+export type User = z.infer<typeof UserSchema>
 
 export const SignInResponseSchema = z.object({
   token: z.string(),
@@ -100,7 +101,6 @@ export const employeeSchema = z.object({
     .optional()
     .nullable(),
   basicSalary: z.number().positive(),
-  grossSalary: z.number().positive(),
   isActive: z.number().int().min(0).max(1),
   empCode: z.string().min(1, 'Employee code is required'),
   departmentId: z.number(),

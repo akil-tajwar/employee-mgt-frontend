@@ -130,7 +130,6 @@ const CreateEmployee = () => {
     gender: 'Male',
     bloodGroup: null,
     basicSalary: 0,
-    grossSalary: 0,
     isActive: 1,
     empCode: '',
     departmentId: 0,
@@ -207,7 +206,6 @@ const CreateEmployee = () => {
       gender: 'Male',
       bloodGroup: null,
       basicSalary: 0,
-      grossSalary: 0,
       isActive: 1,
       empCode: '',
       departmentId: 0,
@@ -246,8 +244,8 @@ const CreateEmployee = () => {
     if (!formData.dob.trim()) return setError('Please enter date of birth')
     if (!formData.doj.trim()) return setError('Please enter date of joining')
     if (!formData.empCode.trim()) return setError('Please enter employee code')
-    if (!formData.grossSalary || formData.grossSalary <= 0)
-      return setError('Please enter valid gross salary')
+    if (!formData.basicSalary || formData.basicSalary <= 0)
+      return setError('Please enter valid basic salary')
     if (!formData.departmentId || formData.departmentId <= 0)
       return setError('Please select department')
     if (!formData.designationId || formData.designationId <= 0)
@@ -1096,23 +1094,6 @@ const CreateEmployee = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cvUrl" className="text-sm">
-                Upload CV (PDF only)
-              </Label>
-              <Input
-                id="cvUrl"
-                type="file"
-                accept="application/pdf"
-                onChange={handleCvChange}
-                className="text-sm"
-              />
-              {cvUrl && (
-                <p className="text-xs text-green-600">
-                  ✓ CV selected: {cvUrl.name}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="officeTimingId">
                 Office Timing <span className="text-red-500">*</span>
               </Label>
@@ -1146,6 +1127,37 @@ const CreateEmployee = () => {
                 }
                 placeholder="Select office timing"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="basicSalary">
+                Basic Salary <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="basicSalary"
+                name="basicSalary"
+                type="number"
+                step="0.01"
+                value={formData.basicSalary || ''}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cvUrl" className="text-sm">
+                Upload CV (PDF only)
+              </Label>
+              <Input
+                id="cvUrl"
+                type="file"
+                accept="application/pdf"
+                onChange={handleCvChange}
+                className="text-sm"
+              />
+              {cvUrl && (
+                <p className="text-xs text-green-600">
+                  ✓ CV selected: {cvUrl.name}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -1192,38 +1204,6 @@ const CreateEmployee = () => {
                 ✓ {formData.leaveTypeIds.length} leave type(s) selected
               </p>
             )}
-          </div>
-        </div>
-
-        {/* Salary */}
-        <div className="border p-8 rounded-lg bg-slate-100">
-          <h3 className="text-md font-semibold mb-4">Salary</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="basicSalary">Basic Salary</Label>
-              <Input
-                id="basicSalary"
-                name="basicSalary"
-                type="number"
-                step="0.01"
-                value={formData.basicSalary || ''}
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="grossSalary">
-                Gross Salary <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="grossSalary"
-                name="grossSalary"
-                type="number"
-                step="0.01"
-                value={formData.grossSalary || ''}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
           </div>
         </div>
 

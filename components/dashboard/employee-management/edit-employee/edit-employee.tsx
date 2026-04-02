@@ -40,7 +40,7 @@ const EditEmployee = () => {
   const { data: employee } = useGetEmployeeById(
     employeeId ? Number(employeeId) : 0
   )
-  console.log("🚀 ~ EditEmployee ~ employee:", employee)
+  console.log('🚀 ~ EditEmployee ~ employee:', employee)
 
   const { data: departments } = useGetDepartments()
   const { data: designations } = useGetDesignations()
@@ -82,7 +82,6 @@ const EditEmployee = () => {
     gender: 'Male',
     bloodGroup: null,
     basicSalary: 0,
-    grossSalary: 0,
     isActive: 1,
     empCode: '',
     departmentId: 0,
@@ -114,7 +113,6 @@ const EditEmployee = () => {
         gender: emp.gender || 'Male',
         bloodGroup: emp.bloodGroup || null,
         basicSalary: emp.basicSalary || 0,
-        grossSalary: emp.grossSalary || 0,
         isActive: emp.isActive ?? 1,
         empCode: emp.empCode || '',
         departmentId: emp.departmentId || 0,
@@ -229,8 +227,8 @@ const EditEmployee = () => {
     if (!formData.dob.trim()) return setError('Please enter date of birth')
     if (!formData.doj.trim()) return setError('Please enter date of joining')
     if (!formData.empCode.trim()) return setError('Please enter employee code')
-    if (!formData.grossSalary || formData.grossSalary <= 0)
-      return setError('Please enter valid gross salary')
+    if (!formData.basicSalary || formData.basicSalary <= 0)
+      return setError('Please enter valid basic salary')
     if (!formData.departmentId || formData.departmentId <= 0)
       return setError('Please select department')
     if (!formData.designationId || formData.designationId <= 0)
@@ -244,7 +242,7 @@ const EditEmployee = () => {
       ...formData,
       photoUrl: existingPhotoUrl,
       cvUrl: existingCvUrl,
-    //   updatedBy: formData.updatedBy,
+      //   updatedBy: formData.updatedBy,
       updatedBy: userData?.userId || 0,
     }
     console.log('📦 Employee Details Payload:', employeeDetailsPayload)
@@ -654,28 +652,6 @@ const EditEmployee = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cvUrl" className="text-sm">
-                Upload CV (PDF only)
-              </Label>
-              <Input
-                id="cvUrl"
-                type="file"
-                accept="application/pdf"
-                onChange={handleCvChange}
-                className="text-sm"
-              />
-              {cvFile && (
-                <p className="text-xs text-green-600">
-                  ✓ New CV selected: {cvFile.name}
-                </p>
-              )}
-              {!cvFile && existingCvUrl && (
-                <p className="text-xs text-blue-600">
-                  Current CV: {existingCvUrl}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="officeTimingId">
                 Office Timing <span className="text-red-500">*</span>
               </Label>
@@ -717,6 +693,42 @@ const EditEmployee = () => {
                 }
                 placeholder="Select office timing"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="basicSalary">
+                Basic Salary <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="basicSalary"
+                name="basicSalary"
+                type="number"
+                step="0.01"
+                value={formData.basicSalary || ''}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cvUrl" className="text-sm">
+                Upload CV (PDF only)
+              </Label>
+              <Input
+                id="cvUrl"
+                type="file"
+                accept="application/pdf"
+                onChange={handleCvChange}
+                className="text-sm"
+              />
+              {cvFile && (
+                <p className="text-xs text-green-600">
+                  ✓ New CV selected: {cvFile.name}
+                </p>
+              )}
+              {!cvFile && existingCvUrl && (
+                <p className="text-xs text-blue-600">
+                  Current CV: {existingCvUrl}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -763,38 +775,6 @@ const EditEmployee = () => {
                 ✓ {formData.leaveTypeIds.length} leave type(s) selected
               </p>
             )}
-          </div>
-        </div>
-
-        {/* Salary */}
-        <div className="border p-8 rounded-lg bg-slate-100">
-          <h3 className="text-md font-semibold mb-4">Salary</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="basicSalary">Basic Salary</Label>
-              <Input
-                id="basicSalary"
-                name="basicSalary"
-                type="number"
-                step="0.01"
-                value={formData.basicSalary || ''}
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="grossSalary">
-                Gross Salary <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="grossSalary"
-                name="grossSalary"
-                type="number"
-                step="0.01"
-                value={formData.grossSalary || ''}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
           </div>
         </div>
 
