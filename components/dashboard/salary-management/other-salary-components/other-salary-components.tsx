@@ -84,6 +84,7 @@ const OtherSalaryComponents = () => {
   const [formData, setFormData] = useState<CreateOtherSalaryComponentType>({
     componentName: '',
     componentType: 'Allowance',
+    amount: 0,
     status: 1,
     createdBy: userData?.userId || 0,
   })
@@ -109,6 +110,7 @@ const OtherSalaryComponents = () => {
     setFormData({
       componentName: '',
       componentType: 'Allowance',
+      amount: 0,
       status: 1,
       createdBy: userData?.userId || 0,
     })
@@ -185,6 +187,7 @@ const OtherSalaryComponents = () => {
         const submitData: CreateOtherSalaryComponentType = {
           componentName: formData.componentName,
           componentType: formData.componentType,
+          amount: Number(formData.amount),
           status: formData.status,
           createdBy: formData.createdBy,
         }
@@ -230,6 +233,7 @@ const OtherSalaryComponents = () => {
     setFormData({
       componentName: comp.componentName,
       componentType: comp.componentType,
+      amount: Number(comp.amount),
       status: comp.status,
       createdBy: userData?.userId || 0,
     })
@@ -278,12 +282,23 @@ const OtherSalaryComponents = () => {
                 Component Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
+                onClick={() => handleSort('amount')}
+                className="cursor-pointer"
+              >
+                Amount <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              </TableHead>
+              <TableHead
                 onClick={() => handleSort('componentType')}
                 className="cursor-pointer"
               >
                 Type <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead
+                onClick={() => handleSort('status')}
+                className="cursor-pointer"
+              >
+                Status <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              </TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -315,6 +330,7 @@ const OtherSalaryComponents = () => {
                   <TableCell className="font-medium">
                     {comp.componentName}
                   </TableCell>
+                  <TableCell className="font-medium">{comp.amount}</TableCell>
                   <TableCell>
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -445,6 +461,20 @@ const OtherSalaryComponents = () => {
                 id="componentName"
                 name="componentName"
                 value={formData.componentName}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="amount">
+                Amount <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="amount"
+                name="amount"
+                type='number'
+                value={formData.amount}
                 onChange={handleInputChange}
                 required
               />
