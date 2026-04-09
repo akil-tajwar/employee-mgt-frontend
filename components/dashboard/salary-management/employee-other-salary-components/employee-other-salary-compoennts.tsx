@@ -44,6 +44,8 @@ import {
   Calendar,
   Users,
   BadgeDollarSign,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react'
 import { Popup } from '@/utils/popup'
 import type {
@@ -103,7 +105,7 @@ const EmployeeOtherSalaryComponents = () => {
 
   const { data: salaryComponents } = useGetEmployeeOtherSalaryComponents()
   const { data: employees } = useGetAllEmployees()
-  console.log("🚀 ~ EmployeeOtherSalaryComponents ~ employees:", employees)
+  console.log('🚀 ~ EmployeeOtherSalaryComponents ~ employees:', employees)
   const { data: otherSalaryComponents } = useGetOtherSalaryComponents()
 
   const [error, setError] = useState<string | null>(null)
@@ -171,7 +173,6 @@ const EmployeeOtherSalaryComponents = () => {
 
     filteredComponents.forEach((item) => {
       const periodKey = `${item.salaryYear}-${MONTHS.indexOf(item.salaryMonth).toString().padStart(2, '0')}`
-      const periodLabel = `${item.salaryMonth} ${item.salaryYear}`
       const employeeKey = `${item.empCode}|${item.employeeName}`
 
       if (!groups[periodKey]) {
@@ -431,7 +432,8 @@ const EmployeeOtherSalaryComponents = () => {
                                 </span>
                               </div>
                               <div className="flex items-center gap-2 text-xs py-0.5 text-gray-500">
-                                  {empGroup.employeeDesignationName} - {empGroup.employeeDepartmentName}
+                                {empGroup.employeeDesignationName} -{' '}
+                                {empGroup.employeeDepartmentName}
                               </div>
                             </div>
                             <div className="ml-auto flex items-center gap-3 mr-2">
@@ -464,10 +466,10 @@ const EmployeeOtherSalaryComponents = () => {
                                 <TableHead className="w-20">Sl No.</TableHead>
                                 <TableHead>Component Name</TableHead>
                                 <TableHead>Type</TableHead>
-                                <TableHead>Status</TableHead>
                                 <TableHead>Salary Month</TableHead>
                                 <TableHead>Salary Year</TableHead>
                                 <TableHead>Amount</TableHead>
+                                <TableHead>Status</TableHead>
                                 <TableHead className="text-right">
                                   Action
                                 </TableHead>
@@ -500,21 +502,6 @@ const EmployeeOtherSalaryComponents = () => {
                                         : '− Deduction'}
                                     </span>
                                   </TableCell>
-                                  <TableCell>
-                                    {
-                                      <span
-                                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                          item.isAuthorized === 1
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-gray-100 text-gray-500'
-                                        }`}
-                                      >
-                                        {item.isAuthorized === 1
-                                          ? 'Authorized'
-                                          : 'Pending'}
-                                      </span>
-                                    }
-                                  </TableCell>
                                   <TableCell>{item.salaryMonth}</TableCell>
                                   <TableCell>{item.salaryYear}</TableCell>
                                   <TableCell>
@@ -532,6 +519,19 @@ const EmployeeOtherSalaryComponents = () => {
                                         : '−'}{' '}
                                       {item.amount.toLocaleString()}
                                     </span>
+                                  </TableCell>
+                                  <TableCell>
+                                    {item.isAuthorized ? (
+                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
+                                        <CheckCircle className="h-3 w-3" />{' '}
+                                        Authorized
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                        <XCircle className="h-3 w-3" />{' '}
+                                        Unauthorized
+                                      </span>
+                                    )}
                                   </TableCell>
                                   <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
@@ -679,8 +679,7 @@ const EmployeeOtherSalaryComponents = () => {
               value={
                 formData.otherSalaryComponentId
                   ? otherComponentItems.find(
-                      (c) =>
-                        c.id === formData.otherSalaryComponentId.toString()
+                      (c) => c.id === formData.otherSalaryComponentId.toString()
                     ) || null
                   : null
               }

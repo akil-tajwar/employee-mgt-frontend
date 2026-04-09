@@ -185,7 +185,6 @@ export const employeeAttendanceSchema = z.object({
   lateInMinutes: z.number().optional(),
   earlyOutMinutes: z.number().optional(),
   isAbsent: z.number().int().min(0).max(1),
-  isAuthorized: z.number().int().min(0).max(1),
   createdBy: z.number(),
   createdAt: z.number().optional(),
   updatedBy: z.number().optional(),
@@ -201,6 +200,8 @@ export type GetEmployeeAttendanceType = z.infer<
   empCode: string
   designationName: string
   departmentName: string
+  officeStartTime: string
+  officeEndTime: string
 }
 
 export const assignLeaveTypeSchema = z.object({
