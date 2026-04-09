@@ -8,6 +8,7 @@ import {
   createDesignation,
   createEmployee,
   createEmployeeAttendance,
+  createEmployeeOtherSalaryComponent,
   createEmployeeType,
   createHoliday,
   createLeaveType,
@@ -18,6 +19,7 @@ import {
   deleteDesignation,
   deleteEmployee,
   deleteEmployeeAttendance,
+  deleteEmployeeOtherSalaryComponent,
   deleteEmployeeType,
   deleteHoliday,
   deleteLeaveType,
@@ -28,6 +30,7 @@ import {
   editDesignation,
   editEmployee,
   editEmployeeAttendance,
+  editEmployeeOtherSalaryComponent,
   editEmployeeType,
   editHoliday,
   editLeaveType,
@@ -37,6 +40,7 @@ import {
   getAllDepartments,
   getAllDesignations,
   getAllEmployeeAttendances,
+  getAllEmployeeOtherSalaryComponents,
   getAllEmployees,
   getAllEmployeeTypes,
   getAllHolidays,
@@ -54,6 +58,7 @@ import {
   CreateDepartmentType,
   CreateDesignationType,
   CreateEmployeeAttendanceType,
+  CreateEmployeeOtherSalaryComponentType,
   CreateEmployeeTypeType,
   CreateHolidayType,
   CreateLeaveTypeType,
@@ -1231,6 +1236,132 @@ export const useDeleteOtherSalaryComponent = ({
         description: 'other salary component is deleted successfully.',
       })
       queryClient.invalidateQueries({ queryKey: ['otherSalaryComponents'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error sending delete request:', error)
+    },
+  })
+
+  return mutation
+}
+
+//employee other salary compoennents
+export const useGetEmployeeOtherSalaryComponents = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['employeeOtherSalaryComponents'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getAllEmployeeOtherSalaryComponents(token)
+    },
+    enabled: !!token,
+    select: (data) => data,
+  })
+}
+
+export const useAddEmployeeOtherSalaryComponent = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (data: CreateEmployeeOtherSalaryComponentType) => {
+      return createEmployeeOtherSalaryComponent(data, token)
+    },
+    onSuccess: (data) => {
+      console.log('employee other salary component added successfully:', data)
+      queryClient.invalidateQueries({ queryKey: ['employeeOtherSalaryComponents'] })
+
+      // Reset form fields after success
+      reset()
+
+      // Close the form modal
+      onClose()
+    },
+    onError: (error) => {
+      // Handle error
+      console.error('Error adding employee other salary component:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useUpdateEmployeeOtherSalaryComponent = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number
+      data: CreateEmployeeOtherSalaryComponentType
+    }) => {
+      return editEmployeeOtherSalaryComponent(id, data, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'Employee other salary component edited successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['employeeOtherSalaryComponents'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error editing employeeType:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useDeleteEmployeeOtherSalaryComponent = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id }: { id: number }) => {
+      return deleteEmployeeOtherSalaryComponent(id, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'Employee other salary component is deleted successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['employeeOtherSalaryComponents'] })
 
       reset()
       onClose()

@@ -4,6 +4,7 @@ import {
   CreateDepartmentType,
   CreateDesignationType,
   CreateEmployeeAttendanceType,
+  CreateEmployeeOtherSalaryComponentType,
   CreateEmployeeType,
   CreateEmployeeTypeType,
   CreateHolidayType,
@@ -14,6 +15,7 @@ import {
   GetDepartmentType,
   GetDesignationType,
   GetEmployeeAttendanceType,
+  GetEmployeeOtherSalaryComponentType,
   GetEmployeeType,
   GetEmployeeTypeType,
   GetHolidayType,
@@ -543,6 +545,60 @@ export async function editOtherSalaryComponent(
 export async function deleteOtherSalaryComponent(id: number, token: string) {
   return fetchApi<{ id: number }>({
     url: `api/otherSalaryComponents/delete/${id}`,
+    method: 'DELETE',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+//employee other salary components
+export async function getAllEmployeeOtherSalaryComponents(token: string) {
+  return fetchApi<GetEmployeeOtherSalaryComponentType[]>({
+    url: 'api/employeeOtherSalaryComponents/getall',
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function createEmployeeOtherSalaryComponent(
+  data: CreateEmployeeOtherSalaryComponentType,
+  token: string
+) {
+  return fetchApi<CreateEmployeeOtherSalaryComponentType>({
+    url: 'api/employeeOtherSalaryComponents/create',
+    method: 'POST',
+    body: data,
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function editEmployeeOtherSalaryComponent(
+  id: number,
+  data: CreateEmployeeOtherSalaryComponentType,
+  token: string
+) {
+  return fetchApi<CreateEmployeeOtherSalaryComponentType>({
+    url: `api/employeeOtherSalaryComponents/edit/${id}`,
+    method: 'PATCH',
+    body: data,
+    headers: {
+      Authorization: `${token}`,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function deleteEmployeeOtherSalaryComponent(id: number, token: string) {
+  return fetchApi<{ id: number }>({
+    url: `api/employeeOtherSalaryComponents/delete/${id}`,
     method: 'DELETE',
     headers: {
       Authorization: token,

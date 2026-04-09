@@ -3,14 +3,11 @@
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
-  BriefcaseBusiness,
   ChevronDown,
   DollarSign,
   FileChartColumn,
   Home,
-  NotebookText,
   Settings,
-  SquarePlus,
   UserCog,
 } from 'lucide-react'
 
@@ -33,8 +30,6 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from '@/components/ui/sidebar'
-import { title } from 'process'
-import { hr } from 'date-fns/locale'
 
 export function DashboardSidebar() {
   const pathname = usePathname()
@@ -103,6 +98,10 @@ export function DashboardSidebar() {
         {
           title: 'Other Salary Components',
           href: '/dashboard/salary-management/other-salary-components',
+        },
+        {
+          title: 'Employee Other Salary Components',
+          href: '/dashboard/salary-management/employee-other-salary-components',
         },
         {
           title: 'Salary',
