@@ -29,6 +29,8 @@ import {
   Edit2,
   Trash2,
   Calendar,
+  Plus,
+  UserX,
 } from 'lucide-react'
 import { Popup } from '@/utils/popup'
 import type {
@@ -56,18 +58,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { formatDate, formatTime } from '@/utils/conversions'
-
-interface AttendanceFormData {
-  employeeId: number
-  employeeName: string
-  inTime: string
-  outTime: string
-  lateInMinutes: number
-  earlyOutMinutes: number
-  officeStartTime: string
-  officeEndTime: string
-  isChecked: boolean
-}
+import { CustomCombobox } from '@/utils/custom-combobox'
 
 const EmployeeAttendances = () => {
   useInitializeUser()
@@ -79,7 +70,7 @@ const EmployeeAttendances = () => {
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [groupsPerPage] = useState(5) // Number of date groups per page
+  const [groupsPerPage] = useState(5)
   const [sortColumn, setSortColumn] =
     useState<keyof GetEmployeeAttendanceType>('employeeName')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
@@ -101,11 +92,12 @@ const EmployeeAttendances = () => {
     return today.toISOString().split('T')[0]
   })
 
-  const [attendanceForms, setAttendanceForms] = useState<AttendanceFormData[]>(
-    []
-  )
+  const [attendanceForms, setAttendanceForms] = useState<
+    GetEmployeeAttendanceType[]
+  >([])
 
-  // Calculate late and early minutes
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+
   const calculateTimeDifference = (
     actualTime: string,
     expectedTime: string,
@@ -113,75 +105,90 @@ const EmployeeAttendances = () => {
   ): number => {
     const [actualHours, actualMinutes] = actualTime.split(':').map(Number)
     const [expectedHours, expectedMinutes] = expectedTime.split(':').map(Number)
-
-    const actualTotalMinutes = actualHours * 60 + actualMinutes
-    const expectedTotalMinutes = expectedHours * 60 + expectedMinutes
-
-    const difference = actualTotalMinutes - expectedTotalMinutes
-
-    if (isLate) {
-      return Math.max(0, difference)
-    } else {
-      return Math.max(0, -difference)
-    }
+    const actualTotal = actualHours * 60 + actualMinutes
+    const expectedTotal = expectedHours * 60 + expectedMinutes
+    const diff = actualTotal - expectedTotal
+    return isLate ? Math.max(0, diff) : Math.max(0, -diff)
   }
 
-  // Initialize attendance forms when popup opens
-  useEffect(() => {
-    if (
-      isPopupOpen &&
-      !isEditMode &&
-      employees?.data &&
-      officeTimingWeekends?.data
-    ) {
-      const forms: AttendanceFormData[] = employees.data
-        .filter((emp: GetEmployeeType) => emp.isActive === 1)
-        .map((emp: GetEmployeeType) => {
-          const officeTiming = officeTimingWeekends?.data?.find(
-            (ot: any) => ot.officeTimingId === emp.officeTimingId
-          )
+  const getOfficeTimingForEmployee = useCallback(
+    (emp: GetEmployeeType) => {
+      const officeTiming = officeTimingWeekends?.data?.find(
+        (ot: any) => ot.officeTimingId === emp.officeTimingId
+      )
+      return {
+        startTime: officeTiming?.startTime || '09:00',
+        endTime: officeTiming?.endTime || '17:00',
+      }
+    },
+    [officeTimingWeekends?.data]
+  )
 
-          const startTime = officeTiming?.startTime || '09:00'
-          const endTime = officeTiming?.endTime || '17:00'
+  const buildEmptyRow = (): GetEmployeeAttendanceType => ({
+    employeeId: 0,
+    employeeName: '',
+    empCode: '',
+    designationName: '',
+    departmentName: '',
+    inTime: '09:00',
+    outTime: '17:00',
+    lateInMinutes: 0,
+    earlyOutMinutes: 0,
+    officeStartTime: '09:00',
+    officeEndTime: '17:00',
+    isAbsent: 0,
+    attendanceDate: selectedDate,
+    createdBy: userData?.userId || 0,
+  })
 
-          return {
-            employeeId: emp.employeeId!,
-            employeeName: emp.fullName,
-            inTime: startTime,
-            outTime: endTime,
-            lateInMinutes: 0,
-            earlyOutMinutes: 0,
-            officeStartTime: startTime,
-            officeEndTime: endTime,
-            isChecked: true,
-          }
-        })
+  // ── Handlers ─────────────────────────────────────────────────────────────────
 
-      setAttendanceForms(forms)
-    }
-  }, [isPopupOpen, isEditMode, employees?.data, officeTimingWeekends?.data])
-
-  const allChecked = useMemo(() => {
-    return (
-      attendanceForms.length > 0 &&
-      attendanceForms.every((form) => form.isChecked)
-    )
-  }, [attendanceForms])
-
-  const someChecked = useMemo(() => {
-    return attendanceForms.some((form) => form.isChecked) && !allChecked
-  }, [attendanceForms, allChecked])
-
-  const handleSelectAll = (checked: boolean) => {
-    setAttendanceForms((prev) =>
-      prev.map((form) => ({ ...form, isChecked: checked }))
-    )
+  const handleAddRow = () => {
+    setAttendanceForms((prev) => [...prev, buildEmptyRow()])
   }
 
-  const handleCheckboxChange = (index: number, checked: boolean) => {
+  const handleRemoveRow = (index: number) => {
+    setAttendanceForms((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleEmployeeChange = (index: number, emp: GetEmployeeType | null) => {
     setAttendanceForms((prev) => {
       const updated = [...prev]
-      updated[index] = { ...updated[index], isChecked: checked }
+      if (!emp) {
+        updated[index] = {
+          ...updated[index],
+          employeeId: 0,
+          employeeName: '',
+        }
+        return updated
+      }
+      const { startTime, endTime } = getOfficeTimingForEmployee(emp)
+      updated[index] = {
+        ...updated[index],
+        employeeId: emp.employeeId!,
+        employeeName: emp.fullName,
+        officeStartTime: startTime,
+        officeEndTime: endTime,
+        inTime: startTime,
+        outTime: endTime,
+        lateInMinutes: 0,
+        earlyOutMinutes: 0,
+      }
+      return updated
+    })
+  }
+
+  const handleAbsentChange = (index: number, checked: boolean) => {
+    setAttendanceForms((prev) => {
+      const updated = [...prev]
+      updated[index] = {
+        ...updated[index],
+        isAbsent: checked ? 1 : 0,
+        inTime: checked ? '' : updated[index].officeStartTime,
+        outTime: checked ? '' : updated[index].officeEndTime,
+        lateInMinutes: checked ? 0 : updated[index].lateInMinutes,
+        earlyOutMinutes: checked ? 0 : updated[index].earlyOutMinutes,
+      }
       return updated
     })
   }
@@ -194,7 +201,6 @@ const EmployeeAttendances = () => {
     setAttendanceForms((prev) => {
       const updated = [...prev]
       updated[index] = { ...updated[index], [field]: value }
-
       if (field === 'inTime') {
         updated[index].lateInMinutes = calculateTimeDifference(
           value,
@@ -208,17 +214,13 @@ const EmployeeAttendances = () => {
           false
         )
       }
-
       return updated
     })
   }
 
   const resetForm = useCallback(() => {
     setAttendanceForms([])
-    setSelectedDate(() => {
-      const today = new Date()
-      return today.toISOString().split('T')[0]
-    })
+    setSelectedDate(new Date().toISOString().split('T')[0])
     setEditingAttendanceId(null)
     setIsEditMode(false)
     setIsPopupOpen(false)
@@ -235,16 +237,16 @@ const EmployeeAttendances = () => {
     onClose: closePopup,
     reset: resetForm,
   })
-
   const updateMutation = useUpdateEmployeeAttendance({
     onClose: closePopup,
     reset: resetForm,
   })
-
   const deleteMutation = useDeleteEmployeeAttendance({
     onClose: closePopup,
     reset: resetForm,
   })
+
+  // ── Sorting / filtering ───────────────────────────────────────────────────────
 
   const handleSort = (column: keyof GetEmployeeAttendanceType) => {
     if (column === sortColumn) {
@@ -258,62 +260,45 @@ const EmployeeAttendances = () => {
   const filteredAttendances = useMemo(() => {
     if (!employeeAttendances?.data || !Array.isArray(employeeAttendances.data))
       return []
-    return employeeAttendances.data.filter((attendance) =>
-      attendance.employeeName?.toLowerCase().includes(searchTerm.toLowerCase())
+    return employeeAttendances.data.filter((a) =>
+      a.employeeName?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   }, [employeeAttendances?.data, searchTerm])
 
-  // Group attendances by date and sort
   const groupedAttendances = useMemo(() => {
-    if (!Array.isArray(filteredAttendances)) return []
-
     const groups = filteredAttendances.reduce(
       (acc, attendance) => {
         const date = attendance.attendanceDate
-        if (!acc[date]) {
-          acc[date] = []
-        }
+        if (!acc[date]) acc[date] = []
         acc[date].push(attendance)
         return acc
       },
       {} as Record<string, GetEmployeeAttendanceType[]>
     )
 
-    // Sort each group's attendances by employee name or selected column
     Object.keys(groups).forEach((date) => {
       groups[date].sort((a, b) => {
-        const aValue = a[sortColumn] ?? ''
-        const bValue = b[sortColumn] ?? ''
-
-        if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const av = a[sortColumn] ?? ''
+        const bv = b[sortColumn] ?? ''
+        if (typeof av === 'string' && typeof bv === 'string')
           return sortDirection === 'asc'
-            ? aValue.localeCompare(bValue)
-            : bValue.localeCompare(aValue)
-        }
-
-        return sortDirection === 'asc'
-          ? aValue > bValue
-            ? 1
-            : -1
-          : bValue > aValue
-            ? 1
-            : -1
+            ? av.localeCompare(bv)
+            : bv.localeCompare(av)
+        return sortDirection === 'asc' ? (av > bv ? 1 : -1) : bv > av ? 1 : -1
       })
     })
 
-    // Sort dates in descending order (latest first)
-    return Object.entries(groups).sort(([dateA], [dateB]) =>
-      dateB.localeCompare(dateA)
-    )
+    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a))
   }, [filteredAttendances, sortColumn, sortDirection])
 
-  // Paginate by date groups
   const paginatedGroups = useMemo(() => {
-    const startIndex = (currentPage - 1) * groupsPerPage
-    return groupedAttendances.slice(startIndex, startIndex + groupsPerPage)
+    const start = (currentPage - 1) * groupsPerPage
+    return groupedAttendances.slice(start, start + groupsPerPage)
   }, [groupedAttendances, currentPage, groupsPerPage])
 
   const totalPages = Math.ceil(groupedAttendances.length / groupsPerPage)
+
+  // ── Submit ────────────────────────────────────────────────────────────────────
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -321,41 +306,42 @@ const EmployeeAttendances = () => {
       setError(null)
 
       try {
-        const checkedForms = attendanceForms.filter((form) => form.isChecked)
+        const validForms = attendanceForms.filter(
+          (form) => form.employeeId !== null
+        )
 
-        if (checkedForms.length === 0) {
-          setError('Please select at least one employee')
+        if (validForms.length === 0) {
+          setError('Please add at least one employee')
           return
         }
 
         if (isEditMode && editingAttendanceId) {
-          const form = checkedForms[0]
-          const submitData = {
-            employeeId: form.employeeId,
-            attendanceDate: selectedDate,
-            inTime: form.inTime,
-            outTime: form.outTime,
-            lateInMinutes: form.lateInMinutes,
-            earlyOutMinutes: form.earlyOutMinutes,
-            updatedBy: userData?.userId || 0,
-          }
-
+          const form = validForms[0]
           await updateMutation.mutateAsync({
             id: editingAttendanceId,
-            data: submitData as GetEmployeeAttendanceType,
+            data: {
+              employeeId: form.employeeId!,
+              attendanceDate: selectedDate,
+              inTime: form.isAbsent ? undefined : form.inTime,
+              outTime: form.isAbsent ? undefined : form.outTime,
+              lateInMinutes: form.isAbsent ? undefined : form.lateInMinutes,
+              earlyOutMinutes: form.isAbsent ? undefined : form.earlyOutMinutes,
+              isAbsent: form.isAbsent,
+              updatedBy: userData?.userId || 0,
+            } as GetEmployeeAttendanceType,
           })
         } else {
           const attendancesArray: CreateEmployeeAttendanceType[] =
-            checkedForms.map((form) => ({
-              employeeId: form.employeeId,
+            validForms.map((form) => ({
+              employeeId: form.employeeId!,
               attendanceDate: selectedDate,
-              inTime: form.inTime,
-              outTime: form.outTime,
-              lateInMinutes: form.lateInMinutes,
-              earlyOutMinutes: form.earlyOutMinutes,
+              inTime: form.isAbsent ? undefined : form.inTime,
+              outTime: form.isAbsent ? undefined : form.outTime,
+              lateInMinutes: form.isAbsent ? undefined : form.lateInMinutes,
+              earlyOutMinutes: form.isAbsent ? undefined : form.earlyOutMinutes,
+              isAbsent: form.isAbsent,
               createdBy: userData?.userId || 0,
             }))
-
           await addMutation.mutateAsync(attendancesArray as any)
         }
       } catch (err) {
@@ -375,10 +361,11 @@ const EmployeeAttendances = () => {
   )
 
   useEffect(() => {
-    if (addMutation.error || updateMutation.error) {
+    if (addMutation.error || updateMutation.error)
       setError('Error saving attendance')
-    }
   }, [addMutation.error, updateMutation.error])
+
+  // ── Edit click ────────────────────────────────────────────────────────────────
 
   const handleEditClick = (attendance: GetEmployeeAttendanceType) => {
     const employee = employees?.data?.find(
@@ -386,24 +373,24 @@ const EmployeeAttendances = () => {
     )
 
     if (employee && officeTimingWeekends?.data) {
-      const officeTiming = officeTimingWeekends.data.find(
-        (ot: any) => ot.officeTimingId === employee.officeTimingId
-      )
-
-      const startTime = officeTiming?.startTime || '09:00'
-      const endTime = officeTiming?.endTime || '17:00'
+      const { startTime, endTime } = getOfficeTimingForEmployee(employee)
 
       setAttendanceForms([
         {
           employeeId: attendance.employeeId,
           employeeName: attendance.employeeName,
-          inTime: attendance.inTime,
-          outTime: attendance.outTime,
-          lateInMinutes: attendance.lateInMinutes,
-          earlyOutMinutes: attendance.earlyOutMinutes,
+          empCode: attendance.empCode || '',
+          designationName: attendance.designationName || '',
+          departmentName: attendance.departmentName || '',
+          inTime: attendance.inTime || '',
+          outTime: attendance.outTime || '',
+          lateInMinutes: attendance.lateInMinutes || 0,
+          earlyOutMinutes: attendance.earlyOutMinutes || 0,
           officeStartTime: startTime,
           officeEndTime: endTime,
-          isChecked: true,
+          isAbsent: (attendance.isAbsent as 0 | 1) ?? 0,
+          attendanceDate: attendance.attendanceDate,
+          createdBy: userData?.userId || 0,
         },
       ])
 
@@ -414,8 +401,17 @@ const EmployeeAttendances = () => {
     }
   }
 
+  // ── IDs already used in the form (to exclude from combobox) ──────────────────
+  const usedEmployeeIds = useMemo(
+    () => attendanceForms.map((f) => f.employeeId).filter(Boolean) as number[],
+    [attendanceForms]
+  )
+
+  // ─── Render ───────────────────────────────────────────────────────────────────
+
   return (
     <div className="p-6 space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2 mb-4">
           <div className="bg-amber-100 p-2 rounded-md">
@@ -435,13 +431,17 @@ const EmployeeAttendances = () => {
           </div>
           <Button
             className="bg-amber-500 hover:bg-amber-600 text-black"
-            onClick={() => setIsPopupOpen(true)}
+            onClick={() => {
+              setAttendanceForms([buildEmptyRow()])
+              setIsPopupOpen(true)
+            }}
           >
             Add Attendance
           </Button>
         </div>
       </div>
 
+      {/* Attendance list */}
       <div className="space-y-6">
         {!employeeAttendances || employeeAttendances.data === undefined ? (
           <div className="text-center py-8 text-gray-500">
@@ -474,7 +474,7 @@ const EmployeeAttendances = () => {
                 </span>
               </div>
 
-              {/* Attendance Table */}
+              {/* Table */}
               <div className="bg-white">
                 <Table>
                   <TableHeader className="bg-amber-50">
@@ -501,6 +501,7 @@ const EmployeeAttendances = () => {
                       </TableHead>
                       <TableHead>Late In (mins)</TableHead>
                       <TableHead>Early Out (mins)</TableHead>
+                      <TableHead>Absent</TableHead>
                       <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -508,7 +509,7 @@ const EmployeeAttendances = () => {
                     {attendances.map((attendance: any, index) => (
                       <TableRow
                         key={attendance.employeeAttendanceId || index}
-                        className="hover:bg-amber-50/50"
+                        className={`hover:bg-amber-50/50 ${attendance.isAbsent ? 'bg-red-50/40' : ''}`}
                       >
                         <TableCell className="font-medium text-gray-600">
                           {index + 1}
@@ -516,29 +517,60 @@ const EmployeeAttendances = () => {
                         <TableCell className="font-medium">
                           {attendance.employeeName}
                         </TableCell>
-                        <TableCell>{formatTime(attendance.inTime)}</TableCell>
-                        <TableCell>{formatTime(attendance.outTime)}</TableCell>
                         <TableCell>
-                          <span
-                            className={
-                              attendance.lateInMinutes > 0
-                                ? 'text-red-600 font-semibold px-2 py-1 rounded'
-                                : 'text-gray-600'
-                            }
-                          >
-                            {attendance.lateInMinutes}
-                          </span>
+                          {attendance.isAbsent ? (
+                            <span className="text-gray-400 text-xs">—</span>
+                          ) : (
+                            formatTime(attendance.inTime)
+                          )}
                         </TableCell>
                         <TableCell>
-                          <span
-                            className={
-                              attendance.earlyOutMinutes > 0
-                                ? 'text-red-600 font-semibold px-2 py-1 rounded'
-                                : 'text-gray-600'
-                            }
-                          >
-                            {attendance.earlyOutMinutes}
-                          </span>
+                          {attendance.isAbsent ? (
+                            <span className="text-gray-400 text-xs">—</span>
+                          ) : (
+                            formatTime(attendance.outTime)
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {attendance.isAbsent ? (
+                            <span className="text-gray-400 text-xs">—</span>
+                          ) : (
+                            <span
+                              className={
+                                attendance.lateInMinutes > 0
+                                  ? 'text-red-600 font-semibold'
+                                  : 'text-gray-600'
+                              }
+                            >
+                              {attendance.lateInMinutes}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {attendance.isAbsent ? (
+                            <span className="text-gray-400 text-xs">—</span>
+                          ) : (
+                            <span
+                              className={
+                                attendance.earlyOutMinutes > 0
+                                  ? 'text-red-600 font-semibold'
+                                  : 'text-gray-600'
+                              }
+                            >
+                              {attendance.earlyOutMinutes}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {attendance.isAbsent ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
+                              <UserX className="h-3 w-3" /> Absent
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                              Present
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -575,6 +607,7 @@ const EmployeeAttendances = () => {
         )}
       </div>
 
+      {/* Pagination */}
       {groupedAttendances.length > 0 && totalPages > 1 && (
         <div className="mt-6">
           <Pagination>
@@ -589,7 +622,6 @@ const EmployeeAttendances = () => {
                   }
                 />
               </PaginationItem>
-
               {[...Array(totalPages)].map((_, index) => {
                 if (
                   index === 0 ||
@@ -616,10 +648,8 @@ const EmployeeAttendances = () => {
                     </PaginationItem>
                   )
                 }
-
                 return null
               })}
-
               <PaginationItem>
                 <PaginationNext
                   onClick={() =>
@@ -637,13 +667,15 @@ const EmployeeAttendances = () => {
         </div>
       )}
 
+      {/* ── Add / Edit Popup ──────────────────────────────────────────────────── */}
       <Popup
         isOpen={isPopupOpen}
         onClose={closePopup}
         title={isEditMode ? 'Edit Attendance' : 'Add Attendance'}
-        size="sm:max-w-4xl"
+        size="max-w-6xl"
       >
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          {/* Date picker */}
           <div className="space-y-2">
             <Label htmlFor="attendanceDate">
               Attendance Date <span className="text-red-500">*</span>
@@ -659,62 +691,78 @@ const EmployeeAttendances = () => {
             />
           </div>
 
-          {!isEditMode && attendanceForms.length > 0 && (
-            <div className="flex items-center gap-2 pb-2">
-              <Checkbox
-                id="selectAll"
-                checked={allChecked}
-                onCheckedChange={handleSelectAll}
-                className="data-[state=checked]:bg-amber-500"
-              />
-              <Label htmlFor="selectAll" className="cursor-pointer font-medium">
-                {allChecked
-                  ? 'Unselect All'
-                  : someChecked
-                    ? 'Select All'
-                    : 'Select All'}
-              </Label>
-              <span className="text-sm text-gray-500">
-                ({attendanceForms.filter((f) => f.isChecked).length} of{' '}
-                {attendanceForms.length} selected)
-              </span>
-            </div>
-          )}
-
-          <div className="max-h-96 overflow-y-auto border rounded-lg">
-            <Table>
+          {/* Rows table */}
+          {attendanceForms.length > 0 && (
+            <Table className="border">
               <TableHeader className="bg-gray-50 sticky top-0">
                 <TableRow>
-                  {!isEditMode && (
-                    <TableHead className="w-12">Select</TableHead>
-                  )}
-                  <TableHead className="w-48">Employee</TableHead>
+                  <TableHead className="w-10">Absent</TableHead>
+                  <TableHead className="w-52">Employee</TableHead>
                   <TableHead className="w-32">In Time</TableHead>
                   <TableHead className="w-32">Out Time</TableHead>
                   <TableHead className="w-28">Late (mins)</TableHead>
                   <TableHead className="w-28">Early Out (mins)</TableHead>
+                  {!isEditMode && <TableHead className="w-10" />}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {attendanceForms.map((form, index) => (
                   <TableRow
-                    key={form.employeeId}
-                    className={!form.isChecked ? 'bg-gray-100 opacity-60' : ''}
+                    key={index}
+                    className={form.isAbsent ? 'bg-red-50/50' : ''}
                   >
-                    {!isEditMode && (
-                      <TableCell>
-                        <Checkbox
-                          checked={form.isChecked}
-                          onCheckedChange={(checked) =>
-                            handleCheckboxChange(index, checked as boolean)
-                          }
-                          className="data-[state=checked]:bg-amber-500"
-                        />
-                      </TableCell>
-                    )}
-                    <TableCell className="font-medium">
-                      {form.employeeName}
+                    {/* Absent checkbox */}
+                    <TableCell>
+                      <Checkbox
+                        checked={form.isAbsent === 1}
+                        onCheckedChange={(checked) =>
+                          handleAbsentChange(index, checked as boolean)
+                        }
+                        className="data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
+                      />
                     </TableCell>
+
+                    {/* Employee combobox */}
+                    <TableCell>
+                      {isEditMode ? (
+                        <span className="font-medium text-sm">
+                          {form.employeeName}
+                        </span>
+                      ) : (
+                        <CustomCombobox
+                          items={(employees?.data || [])
+                            .filter(
+                              (emp: GetEmployeeType) =>
+                                emp.isActive === 1 &&
+                                !usedEmployeeIds
+                                  .filter((id) => id !== form.employeeId)
+                                  .includes(emp.employeeId!)
+                            )
+                            .map((emp: GetEmployeeType) => ({
+                              id: emp.employeeId!.toString(),
+                              name: emp.fullName,
+                            }))}
+                          value={
+                            form.employeeId
+                              ? {
+                                  id: form.employeeId.toString(),
+                                  name: form.employeeName,
+                                }
+                              : null
+                          }
+                          onChange={(value) => {
+                            const emp = (employees?.data || []).find(
+                              (e: GetEmployeeType) =>
+                                e.employeeId?.toString() === value?.id
+                            )
+                            handleEmployeeChange(index, emp || null)
+                          }}
+                          placeholder="Select employee (Code - Name - Department - Designation)"
+                        />
+                      )}
+                    </TableCell>
+
+                    {/* In Time */}
                     <TableCell>
                       <Input
                         type="time"
@@ -722,10 +770,14 @@ const EmployeeAttendances = () => {
                         onChange={(e) =>
                           handleTimeChange(index, 'inTime', e.target.value)
                         }
-                        disabled={!form.isChecked}
-                        className="w-full disabled:cursor-not-allowed disabled:bg-gray-50"
+                        disabled={
+                          form.isAbsent === 1 || form.employeeId === null
+                        }
+                        className="w-full disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
                       />
                     </TableCell>
+
+                    {/* Out Time */}
                     <TableCell>
                       <Input
                         type="time"
@@ -733,39 +785,74 @@ const EmployeeAttendances = () => {
                         onChange={(e) =>
                           handleTimeChange(index, 'outTime', e.target.value)
                         }
-                        disabled={!form.isChecked}
-                        className="w-full disabled:cursor-not-allowed disabled:bg-gray-50"
+                        disabled={
+                          form.isAbsent === 1 || form.employeeId === null
+                        }
+                        className="w-full disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
                       />
                     </TableCell>
+
+                    {/* Late in */}
                     <TableCell>
                       <Input
                         type="number"
-                        value={form.lateInMinutes}
+                        value={form.isAbsent ? '' : form.lateInMinutes}
                         readOnly
+                        placeholder={form.isAbsent ? '—' : '0'}
                         className={`w-full bg-gray-50 cursor-not-allowed ${
-                          form.lateInMinutes > 0
+                          !form.isAbsent && (form.lateInMinutes ?? 0) > 0
                             ? 'text-red-600 font-medium'
-                            : ''
+                            : 'text-gray-400'
                         }`}
                       />
                     </TableCell>
+
+                    {/* Early out */}
                     <TableCell>
                       <Input
                         type="number"
-                        value={form.earlyOutMinutes}
+                        value={form.isAbsent ? '' : form.earlyOutMinutes}
                         readOnly
+                        placeholder={form.isAbsent ? '—' : '0'}
                         className={`w-full bg-gray-50 cursor-not-allowed ${
-                          form.earlyOutMinutes > 0
+                          !form.isAbsent && (form.earlyOutMinutes ?? 0) > 0
                             ? 'text-orange-600 font-medium'
-                            : ''
+                            : 'text-gray-400'
                         }`}
                       />
                     </TableCell>
+
+                    {/* Remove row button (add mode only) */}
+                    {!isEditMode && (
+                      <TableCell>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveRow(index)}
+                          className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded"
+                          title="Remove row"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
+          )}
+
+          {/* Add More button (add mode only) */}
+          {!isEditMode && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAddRow}
+              className="gap-2 border-dashed border-amber-400 text-amber-700 hover:bg-amber-50"
+            >
+              <Plus className="h-4 w-4" />
+              Add More
+            </Button>
+          )}
 
           {error && (
             <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
@@ -790,6 +877,7 @@ const EmployeeAttendances = () => {
         </form>
       </Popup>
 
+      {/* Delete dialog */}
       <AlertDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
@@ -808,9 +896,8 @@ const EmployeeAttendances = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (deletingAttendanceId) {
+                if (deletingAttendanceId)
                   deleteMutation.mutate({ id: deletingAttendanceId })
-                }
                 setIsDeleteDialogOpen(false)
               }}
               className="bg-red-600 hover:bg-red-700 text-white"

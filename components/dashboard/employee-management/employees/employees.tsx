@@ -399,6 +399,12 @@ const Employees = () => {
               >
                 Designation <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
+              <TableHead
+                onClick={() => handleSort('basicSalary')}
+                className="cursor-pointer"
+              >
+                Basic Salary <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              </TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -445,6 +451,7 @@ const Employees = () => {
                   <TableCell>{emp.officialPhone}</TableCell>
                   <TableCell>{getDepartmentName(emp.departmentId)}</TableCell>
                   <TableCell>{getDesignationName(emp.designationId)}</TableCell>
+                  <TableCell>{emp.basicSalary}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Link href={`/dashboard/employee-management/edit-employee/${emp.employeeId}`}>

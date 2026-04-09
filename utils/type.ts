@@ -35,6 +35,7 @@ export const UserSchema = z.object({
   updatedAt: z.number(),
   role: RoleSchema,
 })
+export type User = z.infer<typeof UserSchema>
 
 export const SignInResponseSchema = z.object({
   token: z.string(),
@@ -100,7 +101,6 @@ export const employeeSchema = z.object({
     .optional()
     .nullable(),
   basicSalary: z.number().positive(),
-  grossSalary: z.number().positive(),
   isActive: z.number().int().min(0).max(1),
   empCode: z.string().min(1, 'Employee code is required'),
   departmentId: z.number(),
@@ -180,10 +180,11 @@ export const employeeAttendanceSchema = z.object({
   employeeAttendanceId: z.number().optional(),
   employeeId: z.number(),
   attendanceDate: z.string(),
-  inTime: z.string(),
-  outTime: z.string(),
-  lateInMinutes: z.number().default(0),
-  earlyOutMinutes: z.number().default(0),
+  inTime: z.string().optional(),
+  outTime: z.string().optional(),
+  lateInMinutes: z.number().optional(),
+  earlyOutMinutes: z.number().optional(),
+  isAbsent: z.number().int().min(0).max(1),
   createdBy: z.number(),
   createdAt: z.number().optional(),
   updatedBy: z.number().optional(),
@@ -199,6 +200,8 @@ export type GetEmployeeAttendanceType = z.infer<
   empCode: string
   designationName: string
   departmentName: string
+  officeStartTime: string
+  officeEndTime: string
 }
 
 export const assignLeaveTypeSchema = z.object({
@@ -212,6 +215,7 @@ export const otherSalaryComponentSchema = z.object({
   otherSalaryComponentId: z.number().optional(),
   componentName: z.string(),
   componentType: z.enum(['Allowance', 'Deduction']),
+  amount: z.number(),
   status: z.number(),
   createdBy: z.number(),
   createdAt: z.number().optional(),
@@ -248,7 +252,7 @@ export const salarySchema = z.object({
   otherSalary: z.array(
     z.object({
       employeeId: z.number(),
-      employeeName: z.string().optional(),
+      employeeName: z.string().optional(), // only for get
       otherSalaryComponentId: z.number(),
       componentName: z.string().optional(), //only for get
       componentType: z.enum(['Allowance', 'Deduction']).optional(), //only for get
@@ -264,3 +268,30 @@ export const salarySchema = z.object({
 })
 export type CreateSalaryType = z.infer<typeof salarySchema>
 export type GetSalaryType = z.infer<typeof salarySchema>
+
+export const employeeOtherSalaryComponentSchema = z.object({
+  employeeOtherSalaryComponentId: z.number().optional(),
+  employeeId: z.number(),
+  otherSalaryComponentId: z.number(),
+  salaryMonth: z.string(),
+  salaryYear: z.number(),
+  amount: z.number(),
+  isAuthorized: z.number().int().min(0).max(1),
+  createdBy: z.number(),
+  createdAt: z.number().optional(),
+  updatedBy: z.number().optional(),
+  updatedAt: z.number().optional(),
+})
+export type CreateEmployeeOtherSalaryComponentType = z.infer<
+  typeof employeeOtherSalaryComponentSchema
+>
+export type GetEmployeeOtherSalaryComponentType = z.infer<
+  typeof employeeOtherSalaryComponentSchema
+> & {
+  empCode: string
+  employeeName: string
+  employeeDepartmentName: string
+  employeeDesignationName: string
+  componentName: string
+  componentType: 'Allowance' | 'Deduction'
+}

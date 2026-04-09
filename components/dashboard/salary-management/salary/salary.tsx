@@ -118,6 +118,7 @@ const Salaries = () => {
   const { data: salaries } = useGetSalaries()
   console.log("🚀 ~ Salaries ~ salaries:", salaries)
   const { data: employees } = useGetAllEmployees()
+  console.log("🚀 ~ Salaries ~ employees:", employees)
   const { data: otherSalaryComponents } = useGetOtherSalaryComponents()
 
   const [error, setError] = useState<string | null>(null)
