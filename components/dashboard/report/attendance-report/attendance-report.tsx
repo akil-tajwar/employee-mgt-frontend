@@ -21,6 +21,7 @@ import { jsPDF } from 'jspdf'
 import { useGetAttendanceReport, useGetAllEmployees } from '@/hooks/use-api'
 import { formatDate } from '@/utils/conversions'
 import { CustomCombobox } from '@/utils/custom-combobox'
+import { cn } from '@/lib/utils'
 
 const AttendanceReport = () => {
   const [fromDate, setFromDate] = useState('')
@@ -30,14 +31,9 @@ const AttendanceReport = () => {
   const { data: employees } = useGetAllEmployees()
   const { data: attendanceReports } = useGetAttendanceReport(fromDate, toDate)
 
-  // Filter attendance data based on selected employee
   const filteredAttendances = useMemo(() => {
     if (!attendanceReports?.data) return []
-
-    if (!selectedEmployeeId) {
-      return attendanceReports.data
-    }
-
+    if (!selectedEmployeeId) return attendanceReports.data
     return attendanceReports.data.filter(
       (attendance) => attendance.employeeId?.toString() === selectedEmployeeId
     )
@@ -47,10 +43,12 @@ const AttendanceReport = () => {
     const flatData = filteredAttendances.map((report) => ({
       'Attendance Date': formatDate(new Date(report.attendanceDate)),
       'Employee Details': `${report.empCode} - ${report.employeeName} - ${report.departmentName} - ${report.designationName}`,
-      'In Time': report.inTime,
-      'Out Time': report.outTime,
-      'Late (min)': report.lateInMinutes,
-      'Early Out (min)': report.earlyOutMinutes,
+      Status: report.isAbsent === 1 ? 'Absent' : 'Present',
+      'In Time': report.isAbsent === 1 ? '-' : (report.inTime ?? '-'),
+      'Out Time': report.isAbsent === 1 ? '-' : (report.outTime ?? '-'),
+      'Late (min)': report.isAbsent === 1 ? '-' : (report.lateInMinutes ?? 0),
+      'Early Out (min)':
+        report.isAbsent === 1 ? '-' : (report.earlyOutMinutes ?? 0),
     }))
 
     const worksheet = XLSX.utils.json_to_sheet(flatData)
@@ -306,6 +304,7 @@ const AttendanceReport = () => {
                       <TableHead className="font-bold">
                         Employee Details
                       </TableHead>
+                      <TableHead className="font-bold">Status</TableHead>
                       <TableHead className="font-bold">In Time</TableHead>
                       <TableHead className="font-bold">Out Time</TableHead>
                       <TableHead className="font-bold">Late (min)</TableHead>
@@ -315,18 +314,82 @@ const AttendanceReport = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredAttendances.map((report, index) => (
-                      <TableRow key={report.employeeAttendanceId || index} className={`${report.lateInMinutes > 0 || report.earlyOutMinutes > 0 && 'bg-red-50'}`}>
-                        <TableCell>
-                          {formatDate(new Date(report.attendanceDate))}
-                        </TableCell>
-                        <TableCell>{`${report.empCode} - ${report.employeeName} - ${report.departmentName} - ${report.designationName}`}</TableCell>
-                        <TableCell>{report.inTime}</TableCell>
-                        <TableCell>{report.outTime}</TableCell>
-                        <TableCell className={`${report.lateInMinutes > 0 && 'text-red-600'}`}>{report.lateInMinutes}</TableCell>
-                        <TableCell className={`${report.earlyOutMinutes > 0 && 'text-red-600'}`}>{report.earlyOutMinutes}</TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredAttendances.map((report, index) => {
+                      const isAbsent = report.isAbsent === 1
+                      const hasIssue =
+                        !isAbsent &&
+                        ((report.lateInMinutes ?? 0) > 0 ||
+                          (report.earlyOutMinutes ?? 0) > 0)
+
+                      return (
+                        <TableRow
+                          key={report.employeeAttendanceId || index}
+                          className={cn(
+                            isAbsent
+                              ? 'bg-red-100 hover:bg-red-100'
+                              : hasIssue
+                                ? 'bg-red-50 hover:bg-red-50'
+                                : ''
+                          )}
+                        >
+                          <TableCell>
+                            {formatDate(new Date(report.attendanceDate))}
+                          </TableCell>
+                          <TableCell>{`${report.empCode} - ${report.employeeName} - ${report.departmentName} - ${report.designationName}`}</TableCell>
+                          <TableCell>
+                            {isAbsent ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-200 text-red-800">
+                                Absent
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                                Present
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {isAbsent ? (
+                              <span className="text-gray-400">-</span>
+                            ) : (
+                              (report.inTime ?? '-')
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {isAbsent ? (
+                              <span className="text-gray-400">-</span>
+                            ) : (
+                              (report.outTime ?? '-')
+                            )}
+                          </TableCell>
+                          <TableCell
+                            className={cn(
+                              !isAbsent &&
+                                (report.lateInMinutes ?? 0) > 0 &&
+                                'text-red-600 font-medium'
+                            )}
+                          >
+                            {isAbsent ? (
+                              <span className="text-gray-400">-</span>
+                            ) : (
+                              (report.lateInMinutes ?? 0)
+                            )}
+                          </TableCell>
+                          <TableCell
+                            className={cn(
+                              !isAbsent &&
+                                (report.earlyOutMinutes ?? 0) > 0 &&
+                                'text-red-600 font-medium'
+                            )}
+                          >
+                            {isAbsent ? (
+                              <span className="text-gray-400">-</span>
+                            ) : (
+                              (report.earlyOutMinutes ?? 0)
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </div>
