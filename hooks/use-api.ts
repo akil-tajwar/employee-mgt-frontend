@@ -1439,7 +1439,7 @@ export const useUpdateSalary = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: CreateSalaryType }) => {
+    mutationFn: ({ id, data }: { id: number; data: any }) => {
       return editSalary(id, data, token)
     },
     onSuccess: () => {

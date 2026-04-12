@@ -266,8 +266,24 @@ export const salarySchema = z.object({
     })
   ),
 })
-export type CreateSalaryType = z.infer<typeof salarySchema>
 export type GetSalaryType = z.infer<typeof salarySchema>
+
+export const createSalarySchema = z.object({
+  salaryMonth: z.string(),
+  salaryYear: z.number(),
+  employeeId: z.number(),
+  departmentId: z.number(),
+  designationId: z.number(),
+  basicSalary: z.number(),
+  grossSalary: z.number(),
+  netSalary: z.number(),
+  doj: z.string(),
+  createdBy: z.number(),
+  createdAt: z.number().optional(),
+  updatedBy: z.number().optional(),
+  updatedAt: z.number().optional(),
+})
+export type CreateSalaryType = z.infer<typeof createSalarySchema>
 
 export const employeeOtherSalaryComponentSchema = z.object({
   employeeOtherSalaryComponentId: z.number().optional(),

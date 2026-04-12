@@ -32,18 +32,15 @@ import {
   ArrowUpDown,
   Search,
   DollarSign,
-  Edit2,
   Trash2,
   Calendar,
-  Plus,
-  X,
-  List,
+  ChevronDown,
 } from 'lucide-react'
 import { Popup } from '@/utils/popup'
 import type {
   CreateSalaryType,
   GetSalaryType,
-  GetOtherSalaryComponentType,
+  GetEmployeeOtherSalaryComponentType,
 } from '@/utils/type'
 import { useInitializeUser, userDataAtom } from '@/utils/user'
 import { useAtom } from 'jotai'
@@ -51,9 +48,8 @@ import {
   useAddSalary,
   useDeleteSalary,
   useGetSalaries,
-  useUpdateSalary,
-  useGetOtherSalaryComponents,
   useGetAllEmployees,
+  useGetEmployeeOtherSalaryComponents,
 } from '@/hooks/use-api'
 import {
   AlertDialog,
@@ -64,6 +60,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { cn } from '@/lib/utils'
 
 const MONTHS = [
   'January',
@@ -80,35 +77,14 @@ const MONTHS = [
   'December',
 ]
 
-interface OtherSalaryRow {
-  otherSalaryComponentId: number
-  amount: number
-}
-
 interface SalaryFormData {
-  employeeId: number
-  departmentId: number
-  designationId: number
-  basicSalary: number
-  grossSalary: number
-  netSalary: number
-  doj: string
   salaryMonth: string
   salaryYear: number
-  otherSalaries: OtherSalaryRow[]
 }
 
 const defaultForm = (): SalaryFormData => ({
-  employeeId: 0,
-  departmentId: 0,
-  designationId: 0,
-  basicSalary: 0,
-  grossSalary: 0,
-  netSalary: 0,
-  doj: '',
   salaryMonth: MONTHS[new Date().getMonth()],
   salaryYear: new Date().getFullYear(),
-  otherSalaries: [],
 })
 
 const Salaries = () => {
@@ -116,10 +92,10 @@ const Salaries = () => {
   const [userData] = useAtom(userDataAtom)
 
   const { data: salaries } = useGetSalaries()
-  console.log("🚀 ~ Salaries ~ salaries:", salaries)
+  const { data: employeeOtherSalaryComponents } =
+    useGetEmployeeOtherSalaryComponents()
   const { data: employees } = useGetAllEmployees()
   console.log("🚀 ~ Salaries ~ employees:", employees)
-  const { data: otherSalaryComponents } = useGetOtherSalaryComponents()
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -129,23 +105,25 @@ const Salaries = () => {
   const [searchTerm, setSearchTerm] = useState('')
 
   const [isPopupOpen, setIsPopupOpen] = useState(false)
-  const [isEditMode, setIsEditMode] = useState(false)
-  const [editingSalaryId, setEditingSalaryId] = useState<number | null>(null)
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deletingSalaryId, setDeletingSalaryId] = useState<number | null>(null)
 
-  const [isDetailPopupOpen, setIsDetailPopupOpen] = useState(false)
-  const [detailSalary, setDetailSalary] = useState<GetSalaryType | null>(null)
+  // Accordion state for main table
+  const [expandedSalaryId, setExpandedSalaryId] = useState<number | null>(null)
+
+  // Accordion state for create popup (keyed by employeeId)
+  const [expandedPopupEmpId, setExpandedPopupEmpId] = useState<number | null>(
+    null
+  )
 
   const [form, setForm] = useState<SalaryFormData>(defaultForm())
 
   const resetForm = useCallback(() => {
     setForm(defaultForm())
-    setEditingSalaryId(null)
-    setIsEditMode(false)
     setIsPopupOpen(false)
     setError(null)
+    setExpandedPopupEmpId(null)
   }, [])
 
   const closePopup = useCallback(() => {
@@ -155,59 +133,60 @@ const Salaries = () => {
   }, [resetForm])
 
   const addMutation = useAddSalary({ onClose: closePopup, reset: resetForm })
-  const updateMutation = useUpdateSalary({
-    onClose: closePopup,
-    reset: resetForm,
-  })
   const deleteMutation = useDeleteSalary({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  // Auto-calculate net salary
-  useEffect(() => {
-    const allowances = form.otherSalaries.reduce((sum, row) => {
-      const comp = otherSalaryComponents?.data?.find(
-        (c: GetOtherSalaryComponentType) =>
-          c.otherSalaryComponentId === row.otherSalaryComponentId
+  // Helper: get other components for a given employee + month + year
+  const getEmpComponents = useCallback(
+    (
+      employeeId: number,
+      salaryMonth: string,
+      salaryYear: number
+    ): GetEmployeeOtherSalaryComponentType[] => {
+      return (employeeOtherSalaryComponents?.data ?? []).filter(
+        (c: GetEmployeeOtherSalaryComponentType) =>
+          c.employeeId === employeeId &&
+          c.salaryMonth === salaryMonth &&
+          c.salaryYear === salaryYear
       )
-      return comp?.componentType === 'Allowance' ? sum + row.amount : sum
-    }, 0)
+    },
+    [employeeOtherSalaryComponents?.data]
+  )
 
-    const deductions = form.otherSalaries.reduce((sum, row) => {
-      const comp = otherSalaryComponents?.data?.find(
-        (c: GetOtherSalaryComponentType) =>
-          c.otherSalaryComponentId === row.otherSalaryComponentId
-      )
-      return comp?.componentType === 'Deduction' ? sum + row.amount : sum
-    }, 0)
+  /**
+   * Authorization logic:
+   * - Allowance: always counted regardless of isAuthorized
+   * - Deduction: only counted if isAuthorized !== 1 (i.e. NOT authorized → still pending/applied)
+   *   If isAuthorized === 1, skip the deduction.
+   */
+  const calcSalaries = useCallback(
+    (
+      employeeId: number,
+      salaryMonth: string,
+      salaryYear: number,
+      basicSalary: number
+    ) => {
+      const comps = getEmpComponents(employeeId, salaryMonth, salaryYear)
 
-    const gross = form.basicSalary + allowances
-    const net = gross - deductions
+      const allowances = comps
+        .filter((c) => c.componentType === 'Allowance')
+        .reduce((sum, c) => sum + c.amount, 0)
 
-    setForm((prev) => ({
-      ...prev,
-      grossSalary: gross,
-      netSalary: net,
-    }))
-  }, [form.basicSalary, form.otherSalaries, otherSalaryComponents?.data])
+      const deductions = comps
+        .filter((c) => c.componentType === 'Deduction' && c.isAuthorized !== 1)
+        .reduce((sum, c) => sum + c.amount, 0)
 
-  // Auto-fill department, designation, doj from employee selection (only in create mode)
-  useEffect(() => {
-    if (form.employeeId && employees?.data && !isEditMode) {
-      const emp = employees.data.find(
-        (e: any) => e.employeeId === form.employeeId
-      )
-      if (emp) {
-        setForm((prev) => ({
-          ...prev,
-          departmentId: emp.departmentId || 0,
-          designationId: emp.designationId || 0,
-          doj: emp.doj || '',
-        }))
+      return {
+        grossSalary: basicSalary + allowances,
+        netSalary: basicSalary + allowances - deductions,
+        allowances,
+        deductions,
       }
-    }
-  }, [form.employeeId, employees?.data, isEditMode])
+    },
+    [getEmpComponents]
+  )
 
   const handleSort = (column: string) => {
     if (column === sortColumn) {
@@ -256,7 +235,6 @@ const Salaries = () => {
       })
     })
 
-    // Sort groups descending (latest month/year first)
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a))
   }, [filteredSalaries, sortColumn, sortDirection])
 
@@ -267,121 +245,55 @@ const Salaries = () => {
 
   const totalPages = Math.ceil(groupedSalaries.length / groupsPerPage)
 
-  const addOtherSalaryRow = () => {
-    setForm((prev) => ({
-      ...prev,
-      otherSalaries: [
-        ...prev.otherSalaries,
-        { otherSalaryComponentId: 0, amount: 0 },
-      ],
-    }))
-  }
-
-  const removeOtherSalaryRow = (index: number) => {
-    setForm((prev) => ({
-      ...prev,
-      otherSalaries: prev.otherSalaries.filter((_, i) => i !== index),
-    }))
-  }
-
-  const updateOtherSalaryRow = (
-    index: number,
-    field: keyof OtherSalaryRow,
-    value: number
-  ) => {
-    setForm((prev) => {
-      const updated = [...prev.otherSalaries]
-      updated[index] = { ...updated[index], [field]: value }
-      return { ...prev, otherSalaries: updated }
-    })
-  }
-
+  // Bulk create: build array of CreateSalaryType and send in one call
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
       setError(null)
 
       try {
-        if (!form.employeeId) {
-          setError('Please select an employee')
+        if (!employees?.data) {
+          setError('Employee data not loaded')
           return
         }
+        const activeEmployees = employees.data.filter(
+          (e: any) => e.isActive === 1
+        )
 
-        const payload: CreateSalaryType = {
-          salary: {
+        const payload: CreateSalaryType[] = activeEmployees.map((emp: any) => {
+          const basicSalary: number = emp.basicSalary ?? 0
+          const { grossSalary, netSalary } = calcSalaries(
+            emp.employeeId,
+            form.salaryMonth,
+            form.salaryYear,
+            basicSalary
+          )
+          return {
             salaryMonth: form.salaryMonth,
             salaryYear: form.salaryYear,
-            employeeId: form.employeeId,
-            departmentId: form.departmentId,
-            designationId: form.designationId,
-            basicSalary: form.basicSalary,
-            grossSalary: form.grossSalary,
-            netSalary: form.netSalary,
-            doj: form.doj,
+            employeeId: emp.employeeId,
+            departmentId: emp.departmentId ?? 0,
+            designationId: emp.designationId ?? 0,
+            basicSalary,
+            grossSalary,
+            netSalary,
+            doj: emp.doj ?? '',
             createdBy: userData?.userId || 0,
-            ...(isEditMode ? { updatedBy: userData?.userId || 0 } : {}),
-          },
-          otherSalary: form.otherSalaries
-            .filter((row) => row.otherSalaryComponentId > 0)
-            .map((row) => ({
-              employeeId: form.employeeId,
-              otherSalaryComponentId: row.otherSalaryComponentId,
-              salaryMonth: form.salaryMonth,
-              salaryYear: form.salaryYear,
-              amount: row.amount,
-              createdBy: userData?.userId || 0,
-              ...(isEditMode ? { updatedBy: userData?.userId || 0 } : {}),
-            })),
-        }
+          }
+        })
 
-        if (isEditMode && editingSalaryId) {
-          await updateMutation.mutateAsync({
-            id: editingSalaryId,
-            data: payload,
-          })
-        } else {
-          await addMutation.mutateAsync(payload)
-        }
+        await addMutation.mutateAsync(payload as any)
       } catch (err) {
         setError('Failed to save salary')
         console.error(err)
       }
     },
-    [form, isEditMode, editingSalaryId, addMutation, updateMutation, userData]
+    [form, addMutation, userData, employees?.data, calcSalaries]
   )
-
-  const handleEditClick = (salary: GetSalaryType) => {
-    setForm({
-      employeeId: salary.salary.employeeId,
-      departmentId: salary.salary.departmentId,
-      designationId: salary.salary.designationId,
-      basicSalary: salary.salary.basicSalary,
-      grossSalary: salary.salary.grossSalary,
-      netSalary: salary.salary.netSalary,
-      doj: salary.salary.doj,
-      salaryMonth: salary.salary.salaryMonth,
-      salaryYear: salary.salary.salaryYear,
-      otherSalaries: salary.otherSalary.map((os) => ({
-        otherSalaryComponentId: os.otherSalaryComponentId,
-        amount: os.amount,
-      })),
-    })
-    setEditingSalaryId((salary.salary as any).salaryId ?? null)
-    setIsEditMode(true)
-    setIsPopupOpen(true)
-  }
 
   const formatGroupLabel = (key: string) => {
     const [year, month] = key.split('-')
     return `${month} ${year}`
-  }
-
-  const getComponentTypeLabel = (componentId: number) => {
-    const comp = otherSalaryComponents?.data?.find(
-      (c: GetOtherSalaryComponentType) =>
-        c.otherSalaryComponentId === componentId
-    )
-    return comp ? `${comp.componentName} (${comp.componentType})` : ''
   }
 
   return (
@@ -448,6 +360,7 @@ const Salaries = () => {
                 <Table>
                   <TableHeader className="bg-amber-50">
                     <TableRow>
+                      <TableHead className="w-10" />
                       <TableHead className="w-20">Sl No.</TableHead>
                       <TableHead
                         onClick={() => handleSort('employeeName')}
@@ -471,64 +384,209 @@ const Salaries = () => {
                   <TableBody>
                     {groupSalaries.map(
                       (salary: GetSalaryType, index: number) => {
+                        const salaryId =
+                          (salary.salary as any).salaryId ?? index
+                        const isExpanded = expandedSalaryId === salaryId
+
+                        const empComponents = getEmpComponents(
+                          salary.salary.employeeId,
+                          salary.salary.salaryMonth,
+                          salary.salary.salaryYear
+                        )
+
+                        // Allowances: always count
+                        const allowanceTotal = empComponents
+                          .filter((c) => c.componentType === 'Allowance')
+                          .reduce((sum, c) => sum + c.amount, 0)
+
+                        // Deductions: only count if isAuthorized !== 1
+                        const deductionTotal = empComponents
+                          .filter(
+                            (c) =>
+                              c.componentType === 'Deduction' &&
+                              c.isAuthorized !== 1
+                          )
+                          .reduce((sum, c) => sum + c.amount, 0)
+
                         return (
-                          <TableRow
-                            key={(salary.salary as any).salaryId ?? index}
-                            className="hover:bg-amber-50/50"
-                          >
-                            <TableCell className="font-medium text-gray-600">
-                              {index + 1}
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              {salary.salary.employeeName}
-                            </TableCell>
-                            <TableCell>
-                              {salary.salary.basicSalary.toLocaleString()}
-                            </TableCell>
-                            <TableCell>
-                              {salary.salary.grossSalary.toLocaleString()}
-                            </TableCell>
-                            <TableCell className="font-semibold text-green-700">
-                              {salary.salary.netSalary.toLocaleString()}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                  title="View other salary components"
-                                  onClick={() => {
-                                    setDetailSalary(salary)
-                                    setIsDetailPopupOpen(true)
-                                  }}
-                                >
-                                  <List className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                                  onClick={() => handleEditClick(salary)}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  onClick={() => {
-                                    setDeletingSalaryId(
-                                      (salary.salary as any).salaryId ?? null
-                                    )
-                                    setIsDeleteDialogOpen(true)
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
+                          <>
+                            <TableRow
+                              key={salaryId}
+                              className="hover:bg-amber-50/50"
+                            >
+                              <TableCell className="w-10 pr-0">
+                                {empComponents.length > 0 && (
+                                  <button
+                                    onClick={() =>
+                                      setExpandedSalaryId(
+                                        isExpanded ? null : salaryId
+                                      )
+                                    }
+                                    className="p-1 rounded hover:bg-amber-100 transition-colors"
+                                    title="View other salary components"
+                                  >
+                                    <ChevronDown
+                                      className={cn(
+                                        'h-4 w-4 text-amber-600 transition-transform duration-200',
+                                        isExpanded && 'rotate-180'
+                                      )}
+                                    />
+                                  </button>
+                                )}
+                              </TableCell>
+                              <TableCell className="font-medium text-gray-600">
+                                {index + 1}
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {salary.salary.employeeName}
+                              </TableCell>
+                              <TableCell>
+                                {salary.salary.basicSalary.toLocaleString()}
+                              </TableCell>
+                              <TableCell>
+                                {salary.salary.grossSalary.toLocaleString()}
+                              </TableCell>
+                              <TableCell className="font-semibold text-green-700">
+                                {salary.salary.netSalary.toLocaleString()}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() => {
+                                      setDeletingSalaryId(salaryId)
+                                      setIsDeleteDialogOpen(true)
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+
+                            {/* Accordion row for main table */}
+                            {isExpanded && (
+                              <TableRow
+                                key={`acc-${salaryId}`}
+                                className="bg-amber-50/40"
+                              >
+                                <TableCell colSpan={7} className="py-0 px-0">
+                                  <div className="pl-14 pr-6 py-4 border-t border-amber-100">
+                                    <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">
+                                      Other salary components —{' '}
+                                      {salary.salary.salaryMonth}{' '}
+                                      {salary.salary.salaryYear}
+                                    </p>
+                                    <Table className='border'>
+                                      <TableHeader>
+                                        <TableRow className="bg-white">
+                                          <TableHead className="text-xs w-20">
+                                            Sl No.
+                                          </TableHead>
+                                          <TableHead className="text-xs">
+                                            Component
+                                          </TableHead>
+                                          <TableHead className="text-xs">
+                                            Type
+                                          </TableHead>
+                                          <TableHead className="text-xs">
+                                            Authorized
+                                          </TableHead>
+                                          <TableHead className="text-xs text-right">
+                                            Amount
+                                          </TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {empComponents.map((c, idx) => {
+                                          const isSkipped =
+                                            c.componentType === 'Deduction' &&
+                                            c.isAuthorized === 1
+                                          return (
+                                            <TableRow
+                                              key={idx}
+                                              className={cn(
+                                                'bg-white',
+                                                isSkipped && 'opacity-50'
+                                              )}
+                                            >
+                                              <TableCell className="text-gray-500 text-sm">
+                                                {idx + 1}
+                                              </TableCell>
+                                              <TableCell className="font-medium text-sm">
+                                                {c.componentName}
+                                              </TableCell>
+                                              <TableCell>
+                                                <span
+                                                  className={cn(
+                                                    'px-2 py-0.5 rounded-full text-xs font-semibold',
+                                                    c.componentType ===
+                                                      'Allowance'
+                                                      ? 'bg-green-100 text-green-700'
+                                                      : 'bg-red-100 text-red-700'
+                                                  )}
+                                                >
+                                                  {c.componentType}
+                                                </span>
+                                              </TableCell>
+                                              <TableCell>
+                                                <span
+                                                  className={cn(
+                                                    'px-2 py-0.5 rounded-full text-xs font-semibold',
+                                                    c.isAuthorized === 1
+                                                      ? 'bg-blue-100 text-blue-700'
+                                                      : 'bg-gray-100 text-gray-600'
+                                                  )}
+                                                >
+                                                  {c.isAuthorized === 1
+                                                    ? 'Authorized'
+                                                    : 'Pending'}
+                                                </span>
+                                                {isSkipped && (
+                                                  <span className="ml-2 text-xs text-gray-400 italic">
+                                                    (not counted)
+                                                  </span>
+                                                )}
+                                              </TableCell>
+                                              <TableCell className="text-right font-medium text-sm">
+                                                <span
+                                                  className={cn(
+                                                    c.componentType ===
+                                                      'Allowance'
+                                                      ? 'text-green-600'
+                                                      : 'text-red-600',
+                                                    isSkipped && 'line-through'
+                                                  )}
+                                                >
+                                                  {c.componentType ===
+                                                  'Allowance'
+                                                    ? '+'
+                                                    : '-'}
+                                                  {c.amount.toLocaleString()}
+                                                </span>
+                                              </TableCell>
+                                            </TableRow>
+                                          )
+                                        })}
+                                      </TableBody>
+                                    </Table>
+                                    <div className="flex gap-6 mt-3 pt-2 border-t border-amber-100 text-sm">
+                                      <span className="text-green-700 font-medium">
+                                        Total Allowances: +
+                                        {allowanceTotal.toLocaleString()}
+                                      </span>
+                                      <span className="text-red-600 font-medium">
+                                        Total Deductions: -
+                                        {deductionTotal.toLocaleString()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </>
                         )
                       }
                     )}
@@ -540,6 +598,7 @@ const Salaries = () => {
         )}
       </div>
 
+      {/* Pagination */}
       {groupedSalaries.length > 0 && totalPages > 1 && (
         <div className="mt-6">
           <Pagination>
@@ -599,11 +658,11 @@ const Salaries = () => {
         </div>
       )}
 
-      {/* Add / Edit Popup */}
+      {/* Create Popup */}
       <Popup
         isOpen={isPopupOpen}
         onClose={closePopup}
-        title={isEditMode ? 'Edit Salary' : 'Add Salary'}
+        title="Add Salary"
         size="sm:max-w-4xl"
       >
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
@@ -651,210 +710,228 @@ const Salaries = () => {
             </div>
           </div>
 
-          {/* Employee */}
-          <div className="space-y-2">
-            <Label>
-              Employee <span className="text-red-500">*</span>
-            </Label>
-            <Select
-              value={form.employeeId ? String(form.employeeId) : ''}
-              onValueChange={(val) =>
-                setForm((prev) => ({ ...prev, employeeId: Number(val) }))
-              }
-              disabled={isEditMode}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select employee" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees?.data
-                  ?.filter((e: any) => e.isActive === 1)
-                  .map((emp: any) => (
-                    <SelectItem
-                      key={emp.employeeId}
-                      value={String(emp.employeeId)}
-                    >
-                      {emp.fullName}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Basic / Gross / Net Salary */}
-          <div className="grid grid-cols-3 gap-4">
+          {/* Preview table of all active employees with accordion */}
+          {employees?.data && (
             <div className="space-y-2">
-              <Label>
-                Basic Salary <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="number"
-                value={form.basicSalary}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    basicSalary: Number(e.target.value),
-                  }))
-                }
-                min={0}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Gross Salary</Label>
-              <Input
-                type="number"
-                value={form.grossSalary}
-                readOnly
-                className="bg-gray-50 cursor-not-allowed"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Net Salary</Label>
-              <Input
-                type="number"
-                value={form.netSalary}
-                readOnly
-                className="bg-gray-50 cursor-not-allowed font-semibold text-green-700"
-              />
-            </div>
-          </div>
-
-          {/* DOJ */}
-          <div className="space-y-2">
-            <Label>
-              Date of Joining <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              type="date"
-              value={form.doj}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, doj: e.target.value }))
-              }
-              className="max-w-xs"
-              required
-            />
-          </div>
-
-          {/* Other Salary Components */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
               <Label className="text-base font-semibold">
-                Other Salary Components
+                Employees (
+                {employees.data.filter((e: any) => e.isActive === 1).length}{' '}
+                active)
               </Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="text-amber-600 border-amber-400 hover:bg-amber-50"
-                onClick={addOtherSalaryRow}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add More
-              </Button>
-            </div>
-
-            {form.otherSalaries.length > 0 ? (
               <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader className="bg-gray-50">
+                <Table className='border'>
+                  <TableHeader className="bg-amber-50">
                     <TableRow>
-                      <TableHead>Component</TableHead>
-                      <TableHead className="w-36">Amount</TableHead>
-                      <TableHead className="w-12"></TableHead>
+                      <TableHead className="w-10" />
+                      <TableHead className="w-20">Sl No.</TableHead>
+                      <TableHead>Employee</TableHead>
+                      <TableHead>Basic Salary</TableHead>
+                      <TableHead>Gross Salary</TableHead>
+                      <TableHead>Net Salary</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {form.otherSalaries.map((row, index) => {
-                      const selectedComp = otherSalaryComponents?.data?.find(
-                        (c: GetOtherSalaryComponentType) =>
-                          c.otherSalaryComponentId ===
-                          row.otherSalaryComponentId
-                      )
-                      return (
-                        <TableRow key={index}>
-                          <TableCell>
-                            <Select
-                              value={
-                                row.otherSalaryComponentId
-                                  ? String(row.otherSalaryComponentId)
-                                  : ''
-                              }
-                              onValueChange={(val) =>
-                                updateOtherSalaryRow(
-                                  index,
-                                  'otherSalaryComponentId',
-                                  Number(val)
-                                )
-                              }
+                    {employees.data
+                      .filter((e: any) => e.isActive === 1)
+                      .map((emp: any, index: number) => {
+                        const basicSalary: number = emp.basicSalary ?? 0
+                        const { grossSalary, netSalary } = calcSalaries(
+                          emp.employeeId,
+                          form.salaryMonth,
+                          form.salaryYear,
+                          basicSalary
+                        )
+
+                        const empComponents = getEmpComponents(
+                          emp.employeeId,
+                          form.salaryMonth,
+                          form.salaryYear
+                        )
+
+                        const allowanceTotal = empComponents
+                          .filter((c) => c.componentType === 'Allowance')
+                          .reduce((sum, c) => sum + c.amount, 0)
+
+                        const deductionTotal = empComponents
+                          .filter(
+                            (c) =>
+                              c.componentType === 'Deduction' &&
+                              c.isAuthorized !== 1
+                          )
+                          .reduce((sum, c) => sum + c.amount, 0)
+
+                        const isExpanded = expandedPopupEmpId === emp.employeeId
+
+                        return (
+                          <>
+                            <TableRow
+                              key={emp.employeeId}
+                              className="hover:bg-amber-50/50"
                             >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select component" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {otherSalaryComponents?.data
-                                  ?.filter(
-                                    (c: GetOtherSalaryComponentType) =>
-                                      c.status === 1
-                                  )
-                                  .map((comp: GetOtherSalaryComponentType) => (
-                                    <SelectItem
-                                      key={comp.otherSalaryComponentId}
-                                      value={String(
-                                        comp.otherSalaryComponentId
-                                      )}
-                                    >
-                                      {comp.componentName} ({comp.componentType}
+                              <TableCell className="w-10 pr-0">
+                                {empComponents.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setExpandedPopupEmpId(
+                                        isExpanded ? null : emp.employeeId
                                       )
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              value={row.amount}
-                              onChange={(e) =>
-                                updateOtherSalaryRow(
-                                  index,
-                                  'amount',
-                                  Number(e.target.value)
-                                )
-                              }
-                              min={0}
-                              className={
-                                selectedComp?.componentType === 'Deduction'
-                                  ? 'text-red-600'
-                                  : selectedComp?.componentType === 'Allowance'
-                                    ? 'text-green-600'
-                                    : ''
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => removeOtherSalaryRow(index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
+                                    }
+                                    className="p-1 rounded hover:bg-amber-100 transition-colors"
+                                    title="View other salary components"
+                                  >
+                                    <ChevronDown
+                                      className={cn(
+                                        'h-4 w-4 text-amber-600 transition-transform duration-200',
+                                        isExpanded && 'rotate-180'
+                                      )}
+                                    />
+                                  </button>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-gray-500">
+                                {index + 1}
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {emp.fullName}
+                              </TableCell>
+                              <TableCell>
+                                {basicSalary.toLocaleString()}
+                              </TableCell>
+                              <TableCell>
+                                {grossSalary.toLocaleString()}
+                              </TableCell>
+                              <TableCell className="font-semibold text-green-700">
+                                {netSalary.toLocaleString()}
+                              </TableCell>
+                            </TableRow>
+
+                            {/* Accordion row for popup */}
+                            {isExpanded && (
+                              <TableRow
+                                key={`popup-acc-${emp.employeeId}`}
+                                className="bg-amber-50/40"
+                              >
+                                <TableCell colSpan={6} className="py-0 px-0">
+                                  <div className="pl-12 pr-4 py-3 border-t border-amber-100">
+                                    <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">
+                                      Other salary components
+                                    </p>
+                                    <Table className='border'>
+                                      <TableHeader>
+                                        <TableRow className="bg-white">
+                                          <TableHead className="text-xs w-20">
+                                            Sl No.
+                                          </TableHead>
+                                          <TableHead className="text-xs">
+                                            Component
+                                          </TableHead>
+                                          <TableHead className="text-xs">
+                                            Type
+                                          </TableHead>
+                                          <TableHead className="text-xs">
+                                            Authorized
+                                          </TableHead>
+                                          <TableHead className="text-xs text-right">
+                                            Amount
+                                          </TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {empComponents.map((c, idx) => {
+                                          const isSkipped =
+                                            c.componentType === 'Deduction' &&
+                                            c.isAuthorized === 1
+                                          return (
+                                            <TableRow
+                                              key={idx}
+                                              className={cn(
+                                                'bg-white',
+                                                isSkipped && 'opacity-50'
+                                              )}
+                                            >
+                                              <TableCell className="text-gray-500 text-sm">
+                                                {idx + 1}
+                                              </TableCell>
+                                              <TableCell className="font-medium text-sm">
+                                                {c.componentName}
+                                              </TableCell>
+                                              <TableCell>
+                                                <span
+                                                  className={cn(
+                                                    'px-2 py-0.5 rounded-full text-xs font-semibold',
+                                                    c.componentType ===
+                                                      'Allowance'
+                                                      ? 'bg-green-100 text-green-700'
+                                                      : 'bg-red-100 text-red-700'
+                                                  )}
+                                                >
+                                                  {c.componentType}
+                                                </span>
+                                              </TableCell>
+                                              <TableCell>
+                                                <span
+                                                  className={cn(
+                                                    'px-2 py-0.5 rounded-full text-xs font-semibold',
+                                                    c.isAuthorized === 1
+                                                      ? 'bg-blue-100 text-blue-700'
+                                                      : 'bg-gray-100 text-gray-600'
+                                                  )}
+                                                >
+                                                  {c.isAuthorized === 1
+                                                    ? 'Authorized'
+                                                    : 'Pending'}
+                                                </span>
+                                                {isSkipped && (
+                                                  <span className="ml-2 text-xs text-gray-400 italic">
+                                                    (not counted)
+                                                  </span>
+                                                )}
+                                              </TableCell>
+                                              <TableCell className="text-right font-medium text-sm">
+                                                <span
+                                                  className={cn(
+                                                    c.componentType ===
+                                                      'Allowance'
+                                                      ? 'text-green-600'
+                                                      : 'text-red-600',
+                                                    isSkipped && 'line-through'
+                                                  )}
+                                                >
+                                                  {c.componentType ===
+                                                  'Allowance'
+                                                    ? '+'
+                                                    : '-'}
+                                                  {c.amount.toLocaleString()}
+                                                </span>
+                                              </TableCell>
+                                            </TableRow>
+                                          )
+                                        })}
+                                      </TableBody>
+                                    </Table>
+                                    <div className="flex gap-6 mt-2 pt-2 border-t border-amber-100 text-sm">
+                                      <span className="text-green-700 font-medium">
+                                        Total Allowances: +
+                                        {allowanceTotal.toLocaleString()}
+                                      </span>
+                                      <span className="text-red-600 font-medium">
+                                        Total Deductions: -
+                                        {deductionTotal.toLocaleString()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </>
+                        )
+                      })}
                   </TableBody>
                 </Table>
               </div>
-            ) : (
-              <div className="text-center py-6 text-gray-400 border border-dashed rounded-lg">
-                No other salary components added. Click &quot;Add More&quot; to add.
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {error && (
             <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
@@ -868,126 +945,13 @@ const Salaries = () => {
             </Button>
             <Button
               type="submit"
-              disabled={addMutation.isPending || updateMutation.isPending}
+              disabled={addMutation.isPending}
               className="bg-amber-500 hover:bg-amber-600 text-black"
             >
-              {addMutation.isPending || updateMutation.isPending
-                ? 'Saving...'
-                : 'Save Salary'}
+              {addMutation.isPending ? 'Saving...' : 'Save Salary'}
             </Button>
           </div>
         </form>
-      </Popup>
-
-      {/* Other Salary Components Detail Popup */}
-      <Popup
-        isOpen={isDetailPopupOpen}
-        onClose={() => {
-          setIsDetailPopupOpen(false)
-          setDetailSalary(null)
-        }}
-        title="Other Salary Components"
-        size="sm:max-w-lg"
-      >
-        <div className="py-4 space-y-4">
-          {detailSalary && (
-            <>
-              <div className="flex items-center justify-between pb-2 border-b">
-                <div>
-                  <p className="font-semibold text-gray-800">
-                    {detailSalary.salary.employeeName}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {detailSalary.salary.salaryMonth}{' '}
-                    {detailSalary.salary.salaryYear}
-                  </p>
-                </div>
-              </div>
-
-              {detailSalary.otherSalary.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  No other salary components for this record.
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader className="bg-amber-50">
-                    <TableRow>
-                      <TableHead className="w-10">Sl No.</TableHead>
-                      <TableHead>Component</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {detailSalary.otherSalary.map((os, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="text-gray-500">
-                          {idx + 1}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {os.componentName ??
-                            getComponentTypeLabel(os.otherSalaryComponentId)}
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                              os.componentType === 'Allowance'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-red-100 text-red-700'
-                            }`}
-                          >
-                            {os.componentType}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          <span
-                            className={
-                              os.componentType === 'Allowance'
-                                ? 'text-green-600'
-                                : 'text-red-600'
-                            }
-                          >
-                            {os.componentType === 'Allowance' ? '+' : '-'}
-                            {os.amount.toLocaleString()}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-
-              {detailSalary.otherSalary.length > 0 && (
-                <div className="pt-2 border-t space-y-1 text-sm">
-                  {(() => {
-                    const allowanceTotal = detailSalary.otherSalary
-                      .filter((os) => os.componentType === 'Allowance')
-                      .reduce((sum, os) => sum + os.amount, 0)
-                    const deductionTotal = detailSalary.otherSalary
-                      .filter((os) => os.componentType === 'Deduction')
-                      .reduce((sum, os) => sum + os.amount, 0)
-                    return (
-                      <>
-                        <div className="flex justify-between text-green-700">
-                          <span>Total Allowances</span>
-                          <span className="font-semibold">
-                            +{allowanceTotal.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-red-700">
-                          <span>Total Deductions</span>
-                          <span className="font-semibold">
-                            -{deductionTotal.toLocaleString()}
-                          </span>
-                        </div>
-                      </>
-                    )
-                  })()}
-                </div>
-              )}
-            </>
-          )}
-        </div>
       </Popup>
 
       {/* Delete Dialog */}
