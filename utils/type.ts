@@ -216,6 +216,7 @@ export const otherSalaryComponentSchema = z.object({
   componentName: z.string(),
   componentType: z.enum(['Allowance', 'Deduction']),
   amount: z.number(),
+  forDays: z.number(),
   status: z.number(),
   createdBy: z.number(),
   createdAt: z.number().optional(),

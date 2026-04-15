@@ -85,6 +85,7 @@ const OtherSalaryComponents = () => {
     componentName: '',
     componentType: 'Allowance',
     amount: 0,
+    forDays: 0,
     status: 1,
     createdBy: userData?.userId || 0,
   })
@@ -111,6 +112,7 @@ const OtherSalaryComponents = () => {
       componentName: '',
       componentType: 'Allowance',
       amount: 0,
+      forDays: 0,
       status: 1,
       createdBy: userData?.userId || 0,
     })
@@ -188,6 +190,7 @@ const OtherSalaryComponents = () => {
           componentName: formData.componentName,
           componentType: formData.componentType,
           amount: Number(formData.amount),
+          forDays: Number(formData.forDays),
           status: formData.status,
           createdBy: formData.createdBy,
         }
@@ -234,6 +237,7 @@ const OtherSalaryComponents = () => {
       componentName: comp.componentName,
       componentType: comp.componentType,
       amount: Number(comp.amount),
+      forDays: Number(comp.forDays),
       status: comp.status,
       createdBy: userData?.userId || 0,
     })
@@ -288,6 +292,12 @@ const OtherSalaryComponents = () => {
                 Amount <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
+                onClick={() => handleSort('amount')}
+                className="cursor-pointer"
+              >
+                For Days <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              </TableHead>
+              <TableHead
                 onClick={() => handleSort('componentType')}
                 className="cursor-pointer"
               >
@@ -331,6 +341,7 @@ const OtherSalaryComponents = () => {
                     {comp.componentName}
                   </TableCell>
                   <TableCell className="font-medium">{comp.amount}</TableCell>
+                  <TableCell className="font-medium">{comp.forDays}</TableCell>
                   <TableCell>
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -475,6 +486,20 @@ const OtherSalaryComponents = () => {
                 name="amount"
                 type='number'
                 value={formData.amount}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="forDays">
+                For Days <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="forDays"
+                name="forDays"
+                type='number'
+                value={formData.forDays}
                 onChange={handleInputChange}
                 required
               />
