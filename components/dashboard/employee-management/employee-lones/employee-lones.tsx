@@ -67,6 +67,7 @@ const EmployeeLones = () => {
     loneName: '',
     loneDate: '',
     employeeId: 0,
+    amount: 0,
     createdBy: userData?.userId || 0,
   })
 
@@ -85,6 +86,7 @@ const EmployeeLones = () => {
       loneName: '',
       loneDate: '',
       employeeId: 0,
+      amount: 0,
       createdBy: userData?.userId || 0,
     })
     setEditingLoneId(null)
@@ -160,6 +162,7 @@ const EmployeeLones = () => {
           loneName: formData.loneName,
           loneDate: formData.loneDate,
           employeeId: formData.employeeId,
+          amount: formData.amount,
           createdBy: formData.createdBy,
         }
 
@@ -198,6 +201,7 @@ const EmployeeLones = () => {
       loneName: lone.loneName,
       loneDate: lone.loneDate,
       employeeId: lone.employeeId,
+      amount: lone.amount,
       createdBy: userData?.userId || 0,
     })
     setEditingLoneId(lone.loneId)

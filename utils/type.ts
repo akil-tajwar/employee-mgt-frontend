@@ -318,6 +318,7 @@ export const lonesSchema = z.object({
   loneName: z.string().min(1),
   loneDate: z.string().min(1),
   employeeId: z.number(),
+  amount: z.number(),
   createdBy: z.number(),
   createdAt: z.number().optional(),
   updatedBy: z.number().optional(),
