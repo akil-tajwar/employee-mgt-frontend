@@ -4,22 +4,26 @@ import {
   CreateDepartmentType,
   CreateDesignationType,
   CreateEmployeeAttendanceType,
+  CreateEmployeeLeaveType,
   CreateEmployeeOtherSalaryComponentType,
   CreateEmployeeType,
   CreateEmployeeTypeType,
   CreateHolidayType,
   CreateLeaveTypeType,
+  CreateLoneType,
   CreateOfficeTimingType,
   CreateOtherSalaryComponentType,
   CreateSalaryType,
   GetDepartmentType,
   GetDesignationType,
   GetEmployeeAttendanceType,
+  GetEmployeeLeaveType,
   GetEmployeeOtherSalaryComponentType,
   GetEmployeeType,
   GetEmployeeTypeType,
   GetHolidayType,
   GetLeaveTypeType,
+  GetLoneType,
   GetOfficeTimingType,
   GetOtherSalaryComponentType,
   GetSalaryType,
@@ -658,6 +662,114 @@ export async function deleteSalary(id: number, token: string) {
   })
 }
 
+//lones
+export async function getAllLones(token: string) {
+  return fetchApi<GetLoneType[]>({
+    url: 'api/lones/getall',
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function createLone(
+  data: CreateLoneType,
+  token: string
+) {
+  return fetchApi<CreateLoneType>({
+    url: 'api/lones/create',
+    method: 'POST',
+    body: data,
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function editLone(
+  id: number,
+  data: GetLoneType,
+  token: string
+) {
+  return fetchApi<GetLoneType>({
+    url: `api/lones/edit/${id}`,
+    method: 'PATCH',
+    body: data,
+    headers: {
+      Authorization: `${token}`,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function deleteLone(id: number, token: string) {
+  return fetchApi<{ id: number }>({
+    url: `api/lones/delete/${id}`,
+    method: 'DELETE',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+//employee leaves
+export async function getAllEmployeeLeaves(token: string) {
+  return fetchApi<GetEmployeeLeaveType[]>({
+    url: 'api/employeeLeaves/getall',
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function createEmployeeLeave(
+  data: CreateEmployeeLeaveType,
+  token: string
+) {
+  return fetchApi<CreateEmployeeLeaveType>({
+    url: 'api/employeeLeaves/create',
+    method: 'POST',
+    body: data,
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function editEmployeeLeave(
+  id: number,
+  data: GetEmployeeLeaveType,
+  token: string
+) {
+  return fetchApi<GetEmployeeLeaveType>({
+    url: `api/employeeLeaves/edit/${id}`,
+    method: 'PATCH',
+    body: data,
+    headers: {
+      Authorization: `${token}`,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function deleteEmployeeLeave(id: number, token: string) {
+  return fetchApi<{ id: number }>({
+    url: `api/employeeLeaves/delete/${id}`,
+    method: 'DELETE',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
 //reports
 export async function getSalaryReport(
   salaryMonthy: string,
@@ -688,3 +800,4 @@ export async function getAttendanceReport(
     },
   })
 }
+

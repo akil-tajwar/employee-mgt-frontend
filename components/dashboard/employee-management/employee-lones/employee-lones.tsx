@@ -21,26 +21,16 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { ArrowUpDown, Search, Coins, Edit2, Trash2 } from 'lucide-react'
+import { ArrowUpDown, Search, Banknote, Edit2, Trash2 } from 'lucide-react'
 import { Popup } from '@/utils/popup'
-import type {
-  CreateOtherSalaryComponentType,
-  GetOtherSalaryComponentType,
-} from '@/utils/type'
+import type { CreateLoneType, GetLoneType } from '@/utils/type'
 import { useInitializeUser, userDataAtom } from '@/utils/user'
 import { useAtom } from 'jotai'
 import {
-  useAddOtherSalaryComponent,
-  useDeleteOtherSalaryComponent,
-  useGetOtherSalaryComponents,
-  useUpdateOtherSalaryComponent,
+  useAddLone,
+  useDeleteLone,
+  useGetLones,
+  useUpdateLone,
 } from '@/hooks/use-api'
 import {
   AlertDialog,
@@ -52,41 +42,31 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-const OtherSalaryComponents = () => {
+const EmployeeLones = () => {
   useInitializeUser()
   const [userData] = useAtom(userDataAtom)
 
-  const { data: otherSalaryComponents } = useGetOtherSalaryComponents()
-  console.log(
-    '🚀 ~ OtherSalaryComponents ~ otherSalaryComponents:',
-    otherSalaryComponents
-  )
+  const { data: lones } = useGetLones()
+  console.log('🚀 ~ EmployeeLones ~ lones:', lones)
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [componentsPerPage] = useState(10)
-  const [sortColumn, setSortColumn] =
-    useState<keyof GetOtherSalaryComponentType>('componentName')
+  const [lonesPerPage] = useState(10)
+  const [sortColumn, setSortColumn] = useState<keyof GetLoneType>('loneName')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [searchTerm, setSearchTerm] = useState('')
 
   const [isPopupOpen, setIsPopupOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
-  const [editingComponentId, setEditingComponentId] = useState<number | null>(
-    null
-  )
+  const [editingLoneId, setEditingLoneId] = useState<number | null>(null)
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [deletingComponentId, setDeletingComponentId] = useState<number | null>(
-    null
-  )
+  const [deletingLoneId, setDeletingLoneId] = useState<number | null>(null)
 
-  const [formData, setFormData] = useState<CreateOtherSalaryComponentType>({
-    componentName: '',
-    componentType: 'Allowance',
-    amount: 0,
-    forDays: 0,
-    status: 1,
+  const [formData, setFormData] = useState<CreateLoneType>({
+    loneName: '',
+    loneDate: '',
+    employeeId: 0,
     createdBy: userData?.userId || 0,
   })
 
@@ -96,27 +76,18 @@ const OtherSalaryComponents = () => {
     const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
-    }))
-  }
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
+      [name]: name === 'employeeId' ? Number(value) : value,
     }))
   }
 
   const resetForm = useCallback(() => {
     setFormData({
-      componentName: '',
-      componentType: 'Allowance',
-      amount: 0,
-      forDays: 0,
-      status: 1,
+      loneName: '',
+      loneDate: '',
+      employeeId: 0,
       createdBy: userData?.userId || 0,
     })
-    setEditingComponentId(null)
+    setEditingLoneId(null)
     setIsEditMode(false)
     setIsPopupOpen(false)
     setError(null)
@@ -128,22 +99,22 @@ const OtherSalaryComponents = () => {
     resetForm()
   }, [resetForm])
 
-  const addMutation = useAddOtherSalaryComponent({
+  const addMutation = useAddLone({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const updateMutation = useUpdateOtherSalaryComponent({
+  const updateMutation = useUpdateLone({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const deleteMutation = useDeleteOtherSalaryComponent({
+  const deleteMutation = useDeleteLone({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const handleSort = (column: keyof GetOtherSalaryComponentType) => {
+  const handleSort = (column: keyof GetLoneType) => {
     if (column === sortColumn) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
@@ -152,32 +123,31 @@ const OtherSalaryComponents = () => {
     }
   }
 
-  const filteredComponents = useMemo(() => {
-    if (!otherSalaryComponents?.data) return []
-    return otherSalaryComponents.data?.filter((comp) =>
-      comp.componentName?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredLones = useMemo(() => {
+    if (!lones?.data) return []
+    return lones.data?.filter(
+      (lone) =>
+        lone.loneName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lone.employeeName?.toLowerCase().includes(searchTerm.toLowerCase())
     )
-  }, [otherSalaryComponents?.data, searchTerm])
+  }, [lones?.data, searchTerm])
 
-  const sortedComponents = useMemo(() => {
-    return [...filteredComponents].sort((a, b) => {
-      const aValue = a[sortColumn] ?? ''
-      const bValue = b[sortColumn] ?? ''
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue)
-      }
-      return 0
+  const sortedLones = useMemo(() => {
+    return [...filteredLones].sort((a, b) => {
+      const aValue = (a[sortColumn] ?? '') as string
+      const bValue = (b[sortColumn] ?? '') as string
+      return sortDirection === 'asc'
+        ? String(aValue).localeCompare(String(bValue))
+        : String(bValue).localeCompare(String(aValue))
     })
-  }, [filteredComponents, sortColumn, sortDirection])
+  }, [filteredLones, sortColumn, sortDirection])
 
-  const paginatedComponents = useMemo(() => {
-    const startIndex = (currentPage - 1) * componentsPerPage
-    return sortedComponents.slice(startIndex, startIndex + componentsPerPage)
-  }, [sortedComponents, currentPage, componentsPerPage])
+  const paginatedLones = useMemo(() => {
+    const startIndex = (currentPage - 1) * lonesPerPage
+    return sortedLones.slice(startIndex, startIndex + lonesPerPage)
+  }, [sortedLones, currentPage, lonesPerPage])
 
-  const totalPages = Math.ceil(sortedComponents.length / componentsPerPage)
+  const totalPages = Math.ceil(sortedLones.length / lonesPerPage)
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -186,12 +156,10 @@ const OtherSalaryComponents = () => {
       setError(null)
 
       try {
-        const submitData: CreateOtherSalaryComponentType = {
-          componentName: formData.componentName,
-          componentType: formData.componentType,
-          amount: Number(formData.amount),
-          forDays: Number(formData.forDays),
-          status: formData.status,
+        const submitData: CreateLoneType = {
+          loneName: formData.loneName,
+          loneDate: formData.loneDate,
+          employeeId: formData.employeeId,
           createdBy: formData.createdBy,
         }
 
@@ -201,47 +169,38 @@ const OtherSalaryComponents = () => {
           submitData.createdBy = userData?.userId || 0
         }
 
-        if (isEditMode && editingComponentId) {
+        if (isEditMode && editingLoneId) {
           updateMutation.mutate({
-            id: editingComponentId,
-            data: submitData,
+            id: editingLoneId,
+            data: submitData as GetLoneType,
           })
-          console.log('update', isEditMode, editingComponentId)
+          console.log('update', isEditMode, editingLoneId)
         } else {
           addMutation.mutate(submitData)
           console.log('create')
         }
       } catch (err) {
-        setError('Failed to save salary component')
+        setError('Failed to save lone')
         console.error(err)
       }
     },
-    [
-      formData,
-      isEditMode,
-      editingComponentId,
-      addMutation,
-      updateMutation,
-      userData,
-    ]
+    [formData, isEditMode, editingLoneId, addMutation, updateMutation, userData]
   )
 
   useEffect(() => {
     if (addMutation.error || updateMutation.error) {
-      setError('Error saving salary component')
+      setError('Error saving lone')
     }
   }, [addMutation.error, updateMutation.error])
 
-  const handleEditClick = (comp: any) => {
+  const handleEditClick = (lone: any) => {
     setFormData({
-      componentName: comp.componentName,
-      componentType: comp.componentType,
-      amount: Number(comp.amount),
-      forDays: Number(comp.forDays),
-      status: comp.status,
+      loneName: lone.loneName,
+      loneDate: lone.loneDate,
+      employeeId: lone.employeeId,
       createdBy: userData?.userId || 0,
     })
-    setEditingComponentId(comp.otherSalaryComponentId)
+    setEditingLoneId(lone.loneId)
     setIsEditMode(true)
     setIsPopupOpen(true)
   }
@@ -251,15 +210,15 @@ const OtherSalaryComponents = () => {
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2 mb-4">
           <div className="bg-amber-100 p-2 rounded-md">
-            <Coins className="text-amber-600" />
+            <Banknote className="text-amber-600" />
           </div>
-          <h2 className="text-lg font-semibold">Other Salary Components</h2>
+          <h2 className="text-lg font-semibold">Employee Lones</h2>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Search components..."
+              placeholder="Search lones..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-64"
@@ -280,97 +239,82 @@ const OtherSalaryComponents = () => {
             <TableRow>
               <TableHead>Sl No.</TableHead>
               <TableHead
-                onClick={() => handleSort('componentName')}
+                onClick={() => handleSort('employeeName')}
                 className="cursor-pointer"
               >
-                Component Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Employee Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
-                onClick={() => handleSort('amount')}
+                onClick={() => handleSort('empCode')}
                 className="cursor-pointer"
               >
-                Amount <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Emp Code <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
-                onClick={() => handleSort('amount')}
+                onClick={() => handleSort('loneName')}
                 className="cursor-pointer"
               >
-                For Days <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Lone Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
-                onClick={() => handleSort('componentType')}
+                onClick={() => handleSort('loneDate')}
                 className="cursor-pointer"
               >
-                Type <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Lone Date <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
-                onClick={() => handleSort('status')}
+                onClick={() => handleSort('designationName')}
                 className="cursor-pointer"
               >
-                Status <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Designation <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              </TableHead>
+              <TableHead
+                onClick={() => handleSort('departmentName')}
+                className="cursor-pointer"
+              >
+                Department <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!otherSalaryComponents ||
-            otherSalaryComponents.data === undefined ? (
+            {!lones || lones.data === undefined ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
-                  Loading salary components...
+                <TableCell colSpan={8} className="text-center py-4">
+                  Loading lones...
                 </TableCell>
               </TableRow>
-            ) : !otherSalaryComponents.data ||
-              otherSalaryComponents.data.length === 0 ? (
+            ) : !lones.data || lones.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
-                  No salary components found
+                <TableCell colSpan={8} className="text-center py-4">
+                  No lones found
                 </TableCell>
               </TableRow>
-            ) : paginatedComponents.length === 0 ? (
+            ) : paginatedLones.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
-                  No salary components match your search
+                <TableCell colSpan={8} className="text-center py-4">
+                  No lones match your search
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedComponents.map((comp: any, index) => (
+              paginatedLones.map((lone: any, index) => (
                 <TableRow key={index}>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell className="font-medium">
-                    {comp.componentName}
+                    {lone.employeeName}
                   </TableCell>
-                  <TableCell className="font-medium">{comp.amount}</TableCell>
-                  <TableCell className="font-medium">{comp.forDays}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        comp.componentType === 'Allowance'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {comp.componentType}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        comp.status === 1
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {comp.status === 1 ? 'Active' : 'Inactive'}
-                    </span>
-                  </TableCell>
+                  <TableCell>{lone.empCode}</TableCell>
+                  <TableCell>{lone.loneName}</TableCell>
+                  <TableCell>{lone.loneDate}</TableCell>
+                  <TableCell>{lone.designationName}</TableCell>
+                  <TableCell>{lone.departmentName}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
                         className="text-amber-600 hover:text-amber-700"
-                        onClick={() => handleEditClick(comp)}
+                        onClick={() => handleEditClick(lone)}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -379,7 +323,7 @@ const OtherSalaryComponents = () => {
                         size="sm"
                         className="text-red-600 hover:text-red-700"
                         onClick={() => {
-                          setDeletingComponentId(comp.otherSalaryComponentId)
+                          setDeletingLoneId(lone.loneId)
                           setIsDeleteDialogOpen(true)
                         }}
                       >
@@ -394,7 +338,7 @@ const OtherSalaryComponents = () => {
         </Table>
       </div>
 
-      {sortedComponents.length > 0 && (
+      {sortedLones.length > 0 && (
         <div className="mt-4">
           <Pagination>
             <PaginationContent>
@@ -459,90 +403,48 @@ const OtherSalaryComponents = () => {
       <Popup
         isOpen={isPopupOpen}
         onClose={closePopup}
-        title={isEditMode ? 'Edit Salary Component' : 'Add Salary Component'}
+        title={isEditMode ? 'Edit Lone' : 'Add Lone'}
         size="sm:max-w-md"
       >
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="componentName">
-                Component Name <span className="text-red-500">*</span>
+              <Label htmlFor="loneName">
+                Lone Name <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="componentName"
-                name="componentName"
-                value={formData.componentName}
+                id="loneName"
+                name="loneName"
+                value={formData.loneName}
                 onChange={handleInputChange}
                 required
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="amount">
-                Amount <span className="text-red-500">*</span>
+              <Label htmlFor="loneDate">
+                Lone Date <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="amount"
-                name="amount"
-                type='number'
-                value={formData.amount}
+                id="loneDate"
+                name="loneDate"
+                type="date"
+                value={formData.loneDate}
                 onChange={handleInputChange}
                 required
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="forDays">
-                For Days <span className="text-red-500">*</span>
+              <Label htmlFor="employeeId">
+                Employee ID <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="forDays"
-                name="forDays"
-                type='number'
-                value={formData.forDays}
+                id="employeeId"
+                name="employeeId"
+                type="number"
+                value={formData.employeeId || ''}
                 onChange={handleInputChange}
                 required
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="componentType">
-                Component Type <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={formData.componentType}
-                onValueChange={(value) =>
-                  handleSelectChange('componentType', value)
-                }
-              >
-                <SelectTrigger id="componentType">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Allowance">Allowance</SelectItem>
-                  <SelectItem value="Deduction">Deduction</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status">
-                Status <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={String(formData.status)}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, status: Number(value) }))
-                }
-              >
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Active</SelectItem>
-                  <SelectItem value="0">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
@@ -574,10 +476,10 @@ const OtherSalaryComponents = () => {
       >
         <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Salary Component</AlertDialogTitle>
+            <AlertDialogTitle>Delete Lone</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this salary component? This action
-              cannot be undone.
+              Are you sure you want to delete this lone? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex justify-end gap-2 mt-4">
@@ -586,8 +488,8 @@ const OtherSalaryComponents = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (deletingComponentId) {
-                  deleteMutation.mutate({ id: deletingComponentId })
+                if (deletingLoneId) {
+                  deleteMutation.mutate({ id: deletingLoneId })
                 }
                 setIsDeleteDialogOpen(false)
               }}
@@ -602,4 +504,4 @@ const OtherSalaryComponents = () => {
   )
 }
 
-export default OtherSalaryComponents
+export default EmployeeLones
