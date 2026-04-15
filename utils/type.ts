@@ -216,6 +216,7 @@ export const otherSalaryComponentSchema = z.object({
   componentName: z.string(),
   componentType: z.enum(['Allowance', 'Deduction']),
   amount: z.number(),
+  forDays: z.number(),
   status: z.number(),
   createdBy: z.number(),
   createdAt: z.number().optional(),
@@ -310,4 +311,44 @@ export type GetEmployeeOtherSalaryComponentType = z.infer<
   employeeDesignationName: string
   componentName: string
   componentType: 'Allowance' | 'Deduction'
+}
+
+export const lonesSchema = z.object({
+  loneId: z.number().optional(),
+  loneName: z.string().min(1),
+  loneDate: z.string().min(1),
+  employeeId: z.number(),
+  createdBy: z.number(),
+  createdAt: z.number().optional(),
+  updatedBy: z.number().optional(),
+  updatedAt: z.number().optional(),
+});
+export type CreateLoneType = z.infer<typeof lonesSchema>
+export type GetLoneType = z.infer<typeof lonesSchema> & {
+  employeeName: string
+  empCode: string
+  designationName: string
+  departmentName: string
+}
+
+export const employeeLeaveSchema = z.object({
+  employeeLeaveId: z.number().optional(),
+  employeeId: z.number(),
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+  noOfDays: z.number().int().positive(),
+  leaveTypeId: z.number(),
+  description: z.string().optional(),
+  createdBy: z.number(),
+  createdAt: z.number().optional(),
+  updatedBy: z.number().optional(),
+  updatedAt: z.number().optional(),
+});
+export type CreateEmployeeLeaveType = z.infer<typeof employeeLeaveSchema>
+export type GetEmployeeLeaveType = z.infer<typeof employeeLeaveSchema> & {
+  employeeName: string
+  empCode: string
+  designationName: string
+  departmentName: string
+  leaveTypeName: string
 }

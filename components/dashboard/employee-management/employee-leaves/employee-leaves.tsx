@@ -21,26 +21,19 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { ArrowUpDown, Search, Coins, Edit2, Trash2 } from 'lucide-react'
+import { ArrowUpDown, Search, CalendarDays, Edit2, Trash2 } from 'lucide-react'
 import { Popup } from '@/utils/popup'
 import type {
-  CreateOtherSalaryComponentType,
-  GetOtherSalaryComponentType,
+  CreateEmployeeLeaveType,
+  GetEmployeeLeaveType,
 } from '@/utils/type'
 import { useInitializeUser, userDataAtom } from '@/utils/user'
 import { useAtom } from 'jotai'
 import {
-  useAddOtherSalaryComponent,
-  useDeleteOtherSalaryComponent,
-  useGetOtherSalaryComponents,
-  useUpdateOtherSalaryComponent,
+  useAddEmployeeLeave,
+  useDeleteEmployeeLeave,
+  useGetEmployeeLeaves,
+  useUpdateEmployeeLeave,
 } from '@/hooks/use-api'
 import {
   AlertDialog,
@@ -52,41 +45,35 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-const OtherSalaryComponents = () => {
+const EmployeeLeaves = () => {
   useInitializeUser()
   const [userData] = useAtom(userDataAtom)
 
-  const { data: otherSalaryComponents } = useGetOtherSalaryComponents()
-  console.log(
-    '🚀 ~ OtherSalaryComponents ~ otherSalaryComponents:',
-    otherSalaryComponents
-  )
+  const { data: employeeLeaves } = useGetEmployeeLeaves()
+  console.log('🚀 ~ EmployeeLeaves ~ employeeLeaves:', employeeLeaves)
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [componentsPerPage] = useState(10)
+  const [leavesPerPage] = useState(10)
   const [sortColumn, setSortColumn] =
-    useState<keyof GetOtherSalaryComponentType>('componentName')
+    useState<keyof GetEmployeeLeaveType>('employeeName')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [searchTerm, setSearchTerm] = useState('')
 
   const [isPopupOpen, setIsPopupOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
-  const [editingComponentId, setEditingComponentId] = useState<number | null>(
-    null
-  )
+  const [editingLeaveId, setEditingLeaveId] = useState<number | null>(null)
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [deletingComponentId, setDeletingComponentId] = useState<number | null>(
-    null
-  )
+  const [deletingLeaveId, setDeletingLeaveId] = useState<number | null>(null)
 
-  const [formData, setFormData] = useState<CreateOtherSalaryComponentType>({
-    componentName: '',
-    componentType: 'Allowance',
-    amount: 0,
-    forDays: 0,
-    status: 1,
+  const [formData, setFormData] = useState<CreateEmployeeLeaveType>({
+    employeeId: 0,
+    startDate: '',
+    endDate: '',
+    noOfDays: 0,
+    leaveTypeId: 0,
+    description: '',
     createdBy: userData?.userId || 0,
   })
 
@@ -96,27 +83,24 @@ const OtherSalaryComponents = () => {
     const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
-    }))
-  }
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
+      [name]:
+        name === 'employeeId' || name === 'noOfDays' || name === 'leaveTypeId'
+          ? Number(value)
+          : value,
     }))
   }
 
   const resetForm = useCallback(() => {
     setFormData({
-      componentName: '',
-      componentType: 'Allowance',
-      amount: 0,
-      forDays: 0,
-      status: 1,
+      employeeId: 0,
+      startDate: '',
+      endDate: '',
+      noOfDays: 0,
+      leaveTypeId: 0,
+      description: '',
       createdBy: userData?.userId || 0,
     })
-    setEditingComponentId(null)
+    setEditingLeaveId(null)
     setIsEditMode(false)
     setIsPopupOpen(false)
     setError(null)
@@ -128,22 +112,22 @@ const OtherSalaryComponents = () => {
     resetForm()
   }, [resetForm])
 
-  const addMutation = useAddOtherSalaryComponent({
+  const addMutation = useAddEmployeeLeave({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const updateMutation = useUpdateOtherSalaryComponent({
+  const updateMutation = useUpdateEmployeeLeave({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const deleteMutation = useDeleteOtherSalaryComponent({
+  const deleteMutation = useDeleteEmployeeLeave({
     onClose: closePopup,
     reset: resetForm,
   })
 
-  const handleSort = (column: keyof GetOtherSalaryComponentType) => {
+  const handleSort = (column: keyof GetEmployeeLeaveType) => {
     if (column === sortColumn) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
@@ -152,32 +136,32 @@ const OtherSalaryComponents = () => {
     }
   }
 
-  const filteredComponents = useMemo(() => {
-    if (!otherSalaryComponents?.data) return []
-    return otherSalaryComponents.data?.filter((comp) =>
-      comp.componentName?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredLeaves = useMemo(() => {
+    if (!employeeLeaves?.data) return []
+    return employeeLeaves.data?.filter(
+      (leave) =>
+        leave.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        leave.leaveTypeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        leave.empCode?.toLowerCase().includes(searchTerm.toLowerCase())
     )
-  }, [otherSalaryComponents?.data, searchTerm])
+  }, [employeeLeaves?.data, searchTerm])
 
-  const sortedComponents = useMemo(() => {
-    return [...filteredComponents].sort((a, b) => {
-      const aValue = a[sortColumn] ?? ''
-      const bValue = b[sortColumn] ?? ''
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue)
-      }
-      return 0
+  const sortedLeaves = useMemo(() => {
+    return [...filteredLeaves].sort((a, b) => {
+      const aValue = (a[sortColumn] ?? '') as string
+      const bValue = (b[sortColumn] ?? '') as string
+      return sortDirection === 'asc'
+        ? String(aValue).localeCompare(String(bValue))
+        : String(bValue).localeCompare(String(aValue))
     })
-  }, [filteredComponents, sortColumn, sortDirection])
+  }, [filteredLeaves, sortColumn, sortDirection])
 
-  const paginatedComponents = useMemo(() => {
-    const startIndex = (currentPage - 1) * componentsPerPage
-    return sortedComponents.slice(startIndex, startIndex + componentsPerPage)
-  }, [sortedComponents, currentPage, componentsPerPage])
+  const paginatedLeaves = useMemo(() => {
+    const startIndex = (currentPage - 1) * leavesPerPage
+    return sortedLeaves.slice(startIndex, startIndex + leavesPerPage)
+  }, [sortedLeaves, currentPage, leavesPerPage])
 
-  const totalPages = Math.ceil(sortedComponents.length / componentsPerPage)
+  const totalPages = Math.ceil(sortedLeaves.length / leavesPerPage)
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -186,12 +170,13 @@ const OtherSalaryComponents = () => {
       setError(null)
 
       try {
-        const submitData: CreateOtherSalaryComponentType = {
-          componentName: formData.componentName,
-          componentType: formData.componentType,
-          amount: Number(formData.amount),
-          forDays: Number(formData.forDays),
-          status: formData.status,
+        const submitData: CreateEmployeeLeaveType = {
+          employeeId: formData.employeeId,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          noOfDays: formData.noOfDays,
+          leaveTypeId: formData.leaveTypeId,
+          description: formData.description,
           createdBy: formData.createdBy,
         }
 
@@ -201,25 +186,25 @@ const OtherSalaryComponents = () => {
           submitData.createdBy = userData?.userId || 0
         }
 
-        if (isEditMode && editingComponentId) {
+        if (isEditMode && editingLeaveId) {
           updateMutation.mutate({
-            id: editingComponentId,
-            data: submitData,
+            id: editingLeaveId,
+            data: submitData as GetEmployeeLeaveType,
           })
-          console.log('update', isEditMode, editingComponentId)
+          console.log('update', isEditMode, editingLeaveId)
         } else {
           addMutation.mutate(submitData)
           console.log('create')
         }
       } catch (err) {
-        setError('Failed to save salary component')
+        setError('Failed to save employee leave')
         console.error(err)
       }
     },
     [
       formData,
       isEditMode,
-      editingComponentId,
+      editingLeaveId,
       addMutation,
       updateMutation,
       userData,
@@ -228,20 +213,21 @@ const OtherSalaryComponents = () => {
 
   useEffect(() => {
     if (addMutation.error || updateMutation.error) {
-      setError('Error saving salary component')
+      setError('Error saving employee leave')
     }
   }, [addMutation.error, updateMutation.error])
 
-  const handleEditClick = (comp: any) => {
+  const handleEditClick = (leave: any) => {
     setFormData({
-      componentName: comp.componentName,
-      componentType: comp.componentType,
-      amount: Number(comp.amount),
-      forDays: Number(comp.forDays),
-      status: comp.status,
+      employeeId: leave.employeeId,
+      startDate: leave.startDate,
+      endDate: leave.endDate,
+      noOfDays: leave.noOfDays,
+      leaveTypeId: leave.leaveTypeId,
+      description: leave.description || '',
       createdBy: userData?.userId || 0,
     })
-    setEditingComponentId(comp.otherSalaryComponentId)
+    setEditingLeaveId(leave.employeeLeaveId)
     setIsEditMode(true)
     setIsPopupOpen(true)
   }
@@ -251,15 +237,15 @@ const OtherSalaryComponents = () => {
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2 mb-4">
           <div className="bg-amber-100 p-2 rounded-md">
-            <Coins className="text-amber-600" />
+            <CalendarDays className="text-amber-600" />
           </div>
-          <h2 className="text-lg font-semibold">Other Salary Components</h2>
+          <h2 className="text-lg font-semibold">Employee Leaves</h2>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Search components..."
+              placeholder="Search leaves..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-64"
@@ -280,97 +266,96 @@ const OtherSalaryComponents = () => {
             <TableRow>
               <TableHead>Sl No.</TableHead>
               <TableHead
-                onClick={() => handleSort('componentName')}
+                onClick={() => handleSort('employeeName')}
                 className="cursor-pointer"
               >
-                Component Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Employee Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
-                onClick={() => handleSort('amount')}
+                onClick={() => handleSort('empCode')}
                 className="cursor-pointer"
               >
-                Amount <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Emp Code <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
-                onClick={() => handleSort('amount')}
+                onClick={() => handleSort('leaveTypeName')}
                 className="cursor-pointer"
               >
-                For Days <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Leave Type <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
-                onClick={() => handleSort('componentType')}
+                onClick={() => handleSort('startDate')}
                 className="cursor-pointer"
               >
-                Type <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Start Date <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
-                onClick={() => handleSort('status')}
+                onClick={() => handleSort('endDate')}
                 className="cursor-pointer"
               >
-                Status <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                End Date <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              </TableHead>
+              <TableHead
+                onClick={() => handleSort('noOfDays')}
+                className="cursor-pointer"
+              >
+                No. of Days <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              </TableHead>
+              <TableHead
+                onClick={() => handleSort('designationName')}
+                className="cursor-pointer"
+              >
+                Designation <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              </TableHead>
+              <TableHead
+                onClick={() => handleSort('departmentName')}
+                className="cursor-pointer"
+              >
+                Department <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!otherSalaryComponents ||
-            otherSalaryComponents.data === undefined ? (
+            {!employeeLeaves || employeeLeaves.data === undefined ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
-                  Loading salary components...
+                <TableCell colSpan={10} className="text-center py-4">
+                  Loading employee leaves...
                 </TableCell>
               </TableRow>
-            ) : !otherSalaryComponents.data ||
-              otherSalaryComponents.data.length === 0 ? (
+            ) : !employeeLeaves.data || employeeLeaves.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
-                  No salary components found
+                <TableCell colSpan={10} className="text-center py-4">
+                  No employee leaves found
                 </TableCell>
               </TableRow>
-            ) : paginatedComponents.length === 0 ? (
+            ) : paginatedLeaves.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
-                  No salary components match your search
+                <TableCell colSpan={10} className="text-center py-4">
+                  No employee leaves match your search
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedComponents.map((comp: any, index) => (
+              paginatedLeaves.map((leave: any, index) => (
                 <TableRow key={index}>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell className="font-medium">
-                    {comp.componentName}
+                    {leave.employeeName}
                   </TableCell>
-                  <TableCell className="font-medium">{comp.amount}</TableCell>
-                  <TableCell className="font-medium">{comp.forDays}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        comp.componentType === 'Allowance'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {comp.componentType}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        comp.status === 1
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {comp.status === 1 ? 'Active' : 'Inactive'}
-                    </span>
-                  </TableCell>
+                  <TableCell>{leave.empCode}</TableCell>
+                  <TableCell>{leave.leaveTypeName}</TableCell>
+                  <TableCell>{leave.startDate}</TableCell>
+                  <TableCell>{leave.endDate}</TableCell>
+                  <TableCell>{leave.noOfDays}</TableCell>
+                  <TableCell>{leave.designationName}</TableCell>
+                  <TableCell>{leave.departmentName}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
                         className="text-amber-600 hover:text-amber-700"
-                        onClick={() => handleEditClick(comp)}
+                        onClick={() => handleEditClick(leave)}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -379,7 +364,7 @@ const OtherSalaryComponents = () => {
                         size="sm"
                         className="text-red-600 hover:text-red-700"
                         onClick={() => {
-                          setDeletingComponentId(comp.otherSalaryComponentId)
+                          setDeletingLeaveId(leave.employeeLeaveId)
                           setIsDeleteDialogOpen(true)
                         }}
                       >
@@ -394,7 +379,7 @@ const OtherSalaryComponents = () => {
         </Table>
       </div>
 
-      {sortedComponents.length > 0 && (
+      {sortedLeaves.length > 0 && (
         <div className="mt-4">
           <Pagination>
             <PaginationContent>
@@ -459,90 +444,85 @@ const OtherSalaryComponents = () => {
       <Popup
         isOpen={isPopupOpen}
         onClose={closePopup}
-        title={isEditMode ? 'Edit Salary Component' : 'Add Salary Component'}
+        title={isEditMode ? 'Edit Employee Leave' : 'Add Employee Leave'}
         size="sm:max-w-md"
       >
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="componentName">
-                Component Name <span className="text-red-500">*</span>
+              <Label htmlFor="employeeId">
+                Employee ID <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="componentName"
-                name="componentName"
-                value={formData.componentName}
+                id="employeeId"
+                name="employeeId"
+                type="number"
+                value={formData.employeeId || ''}
                 onChange={handleInputChange}
                 required
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="amount">
-                Amount <span className="text-red-500">*</span>
+              <Label htmlFor="leaveTypeId">
+                Leave Type ID <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="amount"
-                name="amount"
-                type='number'
-                value={formData.amount}
+                id="leaveTypeId"
+                name="leaveTypeId"
+                type="number"
+                value={formData.leaveTypeId || ''}
                 onChange={handleInputChange}
                 required
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="forDays">
-                For Days <span className="text-red-500">*</span>
+              <Label htmlFor="startDate">
+                Start Date <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="forDays"
-                name="forDays"
-                type='number'
-                value={formData.forDays}
+                id="startDate"
+                name="startDate"
+                type="date"
+                value={formData.startDate}
                 onChange={handleInputChange}
                 required
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="componentType">
-                Component Type <span className="text-red-500">*</span>
+              <Label htmlFor="endDate">
+                End Date <span className="text-red-500">*</span>
               </Label>
-              <Select
-                value={formData.componentType}
-                onValueChange={(value) =>
-                  handleSelectChange('componentType', value)
-                }
-              >
-                <SelectTrigger id="componentType">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Allowance">Allowance</SelectItem>
-                  <SelectItem value="Deduction">Deduction</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input
+                id="endDate"
+                name="endDate"
+                type="date"
+                value={formData.endDate}
+                onChange={handleInputChange}
+                required
+              />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="status">
-                Status <span className="text-red-500">*</span>
+              <Label htmlFor="noOfDays">
+                No. of Days <span className="text-red-500">*</span>
               </Label>
-              <Select
-                value={String(formData.status)}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, status: Number(value) }))
-                }
-              >
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Active</SelectItem>
-                  <SelectItem value="0">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input
+                id="noOfDays"
+                name="noOfDays"
+                type="number"
+                min={1}
+                value={formData.noOfDays || ''}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                name="description"
+                value={formData.description || ''}
+                onChange={handleInputChange}
+              />
             </div>
           </div>
 
@@ -574,9 +554,9 @@ const OtherSalaryComponents = () => {
       >
         <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Salary Component</AlertDialogTitle>
+            <AlertDialogTitle>Delete Employee Leave</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this salary component? This action
+              Are you sure you want to delete this employee leave? This action
               cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -586,8 +566,8 @@ const OtherSalaryComponents = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (deletingComponentId) {
-                  deleteMutation.mutate({ id: deletingComponentId })
+                if (deletingLeaveId) {
+                  deleteMutation.mutate({ id: deletingLeaveId })
                 }
                 setIsDeleteDialogOpen(false)
               }}
@@ -602,4 +582,4 @@ const OtherSalaryComponents = () => {
   )
 }
 
-export default OtherSalaryComponents
+export default EmployeeLeaves

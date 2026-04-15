@@ -8,10 +8,12 @@ import {
   createDesignation,
   createEmployee,
   createEmployeeAttendance,
+  createEmployeeLeave,
   createEmployeeOtherSalaryComponent,
   createEmployeeType,
   createHoliday,
   createLeaveType,
+  createLone,
   createOfficeTimingWeekend,
   createOtherSalaryComponent,
   createSalary,
@@ -19,10 +21,12 @@ import {
   deleteDesignation,
   deleteEmployee,
   deleteEmployeeAttendance,
+  deleteEmployeeLeave,
   deleteEmployeeOtherSalaryComponent,
   deleteEmployeeType,
   deleteHoliday,
   deleteLeaveType,
+  deleteLone,
   deleteOfficeTimingWeekend,
   deleteOtherSalaryComponent,
   deleteSalary,
@@ -30,21 +34,25 @@ import {
   editDesignation,
   editEmployee,
   editEmployeeAttendance,
+  editEmployeeLeave,
   editEmployeeOtherSalaryComponent,
   editEmployeeType,
   editHoliday,
   editLeaveType,
+  editLone,
   editOfficeTimingWeekend,
   editOtherSalaryComponent,
   editSalary,
   getAllDepartments,
   getAllDesignations,
   getAllEmployeeAttendances,
+  getAllEmployeeLeaves,
   getAllEmployeeOtherSalaryComponents,
   getAllEmployees,
   getAllEmployeeTypes,
   getAllHolidays,
   getAllLeaveTypes,
+  getAllLones,
   getAllOfficeTimingWeekends,
   getAllOtherSalaryComponents,
   getAllSalaries,
@@ -58,14 +66,18 @@ import {
   CreateDepartmentType,
   CreateDesignationType,
   CreateEmployeeAttendanceType,
+  CreateEmployeeLeaveType,
   CreateEmployeeOtherSalaryComponentType,
   CreateEmployeeTypeType,
   CreateHolidayType,
   CreateLeaveTypeType,
+  CreateLoneType,
   CreateOfficeTimingType,
   CreateOtherSalaryComponentType,
   CreateSalaryType,
   GetEmployeeAttendanceType,
+  GetEmployeeLeaveType,
+  GetLoneType,
   GetOfficeTimingType,
 } from '@/utils/type'
 
@@ -1482,6 +1494,246 @@ export const useDeleteSalary = ({
         description: 'salary is deleted successfully.',
       })
       queryClient.invalidateQueries({ queryKey: ['salaries'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error sending delete request:', error)
+    },
+  })
+
+  return mutation
+}
+
+//lones
+export const useGetLones = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['lones'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getAllLones(token)
+    },
+    enabled: !!token,
+    select: (data) => data,
+  })
+}
+
+export const useAddLone = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (data: CreateLoneType) => {
+      return createLone(data, token)
+    },
+    onSuccess: (data) => {
+      console.log('lone added successfully:', data)
+      queryClient.invalidateQueries({ queryKey: ['lones'] })
+
+      // Reset form fields after success
+      reset()
+
+      // Close the form modal
+      onClose()
+    },
+    onError: (error) => {
+      // Handle error
+      console.error('Error adding lone:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useUpdateLone = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: GetLoneType }) => {
+      return editLone(id, data, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'lone edited successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['lones'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error editing lone:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useDeleteLone = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id }: { id: number }) => {
+      return deleteLone(id, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'lone is deleted successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['lones'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error sending delete request:', error)
+    },
+  })
+
+  return mutation
+}
+
+//employee leaves
+export const useGetEmployeeLeaves = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['employeeLeaves'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getAllEmployeeLeaves(token)
+    },
+    enabled: !!token,
+    select: (data) => data,
+  })
+}
+
+export const useAddEmployeeLeave = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (data: CreateEmployeeLeaveType) => {
+      return createEmployeeLeave(data, token)
+    },
+    onSuccess: (data) => {
+      console.log('Employee leave added successfully:', data)
+      queryClient.invalidateQueries({ queryKey: ['employeeLeaves'] })
+
+      // Reset form fields after success
+      reset()
+
+      // Close the form modal
+      onClose()
+    },
+    onError: (error) => {
+      // Handle error
+      console.error('Error adding lone:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useUpdateEmployeeLeave = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: GetEmployeeLeaveType }) => {
+      return editEmployeeLeave(id, data, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'Employee leave edited successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['employeeLeaves'] })
+
+      reset()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error editing employee leave:', error)
+    },
+  })
+
+  return mutation
+}
+
+export const useDeleteEmployeeLeave = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
+  useInitializeUser()
+
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ id }: { id: number }) => {
+      return deleteEmployeeLeave(id, token)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success!',
+        description: 'Employee leave is deleted successfully.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['employeeLeaves'] })
 
       reset()
       onClose()

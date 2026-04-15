@@ -88,6 +88,14 @@ export function DashboardSidebar() {
           title: 'Employee Attendance',
           href: '/dashboard/employee-management/employee-attendances',
         },
+        {
+          title: 'Employee Leaves',
+          href: '/dashboard/employee-management/employee-leaves',
+        },
+        {
+          title: 'Employee Lones',
+          href: '/dashboard/employee-management/employee-lones',
+        },
       ],
     },
     {
