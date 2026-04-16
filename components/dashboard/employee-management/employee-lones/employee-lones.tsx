@@ -23,12 +23,13 @@ import {
 } from '@/components/ui/pagination'
 import { ArrowUpDown, Search, Banknote, Edit2, Trash2 } from 'lucide-react'
 import { Popup } from '@/utils/popup'
-import type { CreateLoneType, GetLoneType } from '@/utils/type'
+import type { CreateEmployeeLoneType, GetEmployeeLoneType } from '@/utils/type'
 import { useInitializeUser, userDataAtom } from '@/utils/user'
 import { useAtom } from 'jotai'
 import {
   useAddLone,
   useDeleteLone,
+  useGetAllEmployees,
   useGetLones,
   useUpdateLone,
 } from '@/hooks/use-api'
@@ -41,18 +42,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { CustomCombobox } from '@/utils/custom-combobox'
 
 const EmployeeLones = () => {
   useInitializeUser()
   const [userData] = useAtom(userDataAtom)
 
   const { data: lones } = useGetLones()
-  console.log('🚀 ~ EmployeeLones ~ lones:', lones)
+  const { data: employees } = useGetAllEmployees()
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [lonesPerPage] = useState(10)
-  const [sortColumn, setSortColumn] = useState<keyof GetLoneType>('loneName')
+  const [sortColumn, setSortColumn] =
+    useState<keyof GetEmployeeLoneType>('employeeName')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -63,12 +66,21 @@ const EmployeeLones = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deletingLoneId, setDeletingLoneId] = useState<number | null>(null)
 
-  const [formData, setFormData] = useState<CreateLoneType>({
-    loneName: '',
+  const [formData, setFormData] = useState<CreateEmployeeLoneType>({
+    employeeLoneName: '',
     loneDate: '',
     employeeId: 0,
+    amount: 0,
     createdBy: userData?.userId || 0,
   })
+
+  const employeeItems = useMemo(() => {
+    if (!employees?.data) return []
+    return employees.data.map((emp: any) => ({
+      id: emp.employeeId.toString(),
+      name: `${emp.empCode} - ${emp.fullName} - ${emp.departmentName} - ${emp.designationName}`,
+    }))
+  }, [employees?.data])
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -76,15 +88,16 @@ const EmployeeLones = () => {
     const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'employeeId' ? Number(value) : value,
+      [name]: name === 'amount' ? Number(value) : value,
     }))
   }
 
   const resetForm = useCallback(() => {
     setFormData({
-      loneName: '',
+      employeeLoneName: '',
       loneDate: '',
       employeeId: 0,
+      amount: 0,
       createdBy: userData?.userId || 0,
     })
     setEditingLoneId(null)
@@ -114,7 +127,7 @@ const EmployeeLones = () => {
     reset: resetForm,
   })
 
-  const handleSort = (column: keyof GetLoneType) => {
+  const handleSort = (column: keyof GetEmployeeLoneType) => {
     if (column === sortColumn) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
@@ -125,10 +138,13 @@ const EmployeeLones = () => {
 
   const filteredLones = useMemo(() => {
     if (!lones?.data) return []
-    return lones.data?.filter(
-      (lone) =>
-        lone.loneName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lone.employeeName?.toLowerCase().includes(searchTerm.toLowerCase())
+    return lones.data.filter(
+      (lone: GetEmployeeLoneType) =>
+        lone.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lone.empCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lone.employeeLoneName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lone.departmentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lone.designationName?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   }, [lones?.data, searchTerm])
 
@@ -152,14 +168,14 @@ const EmployeeLones = () => {
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
-
       setError(null)
 
       try {
-        const submitData: CreateLoneType = {
-          loneName: formData.loneName,
+        const submitData: CreateEmployeeLoneType = {
+          employeeLoneName: formData.employeeLoneName,
           loneDate: formData.loneDate,
           employeeId: formData.employeeId,
+          amount: formData.amount,
           createdBy: formData.createdBy,
         }
 
@@ -172,12 +188,10 @@ const EmployeeLones = () => {
         if (isEditMode && editingLoneId) {
           updateMutation.mutate({
             id: editingLoneId,
-            data: submitData as GetLoneType,
+            data: submitData as GetEmployeeLoneType,
           })
-          console.log('update', isEditMode, editingLoneId)
         } else {
           addMutation.mutate(submitData)
-          console.log('create')
         }
       } catch (err) {
         setError('Failed to save lone')
@@ -195,12 +209,13 @@ const EmployeeLones = () => {
 
   const handleEditClick = (lone: any) => {
     setFormData({
-      loneName: lone.loneName,
+      employeeLoneName: lone.employeeLoneName,
       loneDate: lone.loneDate,
       employeeId: lone.employeeId,
+      amount: lone.amount,
       createdBy: userData?.userId || 0,
     })
-    setEditingLoneId(lone.loneId)
+    setEditingLoneId(lone.employeeLoneId)
     setIsEditMode(true)
     setIsPopupOpen(true)
   }
@@ -242,16 +257,10 @@ const EmployeeLones = () => {
                 onClick={() => handleSort('employeeName')}
                 className="cursor-pointer"
               >
-                Employee Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Employee Details <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
-                onClick={() => handleSort('empCode')}
-                className="cursor-pointer"
-              >
-                Emp Code <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-              </TableHead>
-              <TableHead
-                onClick={() => handleSort('loneName')}
+                onClick={() => handleSort('employeeLoneName')}
                 className="cursor-pointer"
               >
                 Lone Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
@@ -263,16 +272,10 @@ const EmployeeLones = () => {
                 Lone Date <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
-                onClick={() => handleSort('designationName')}
+                onClick={() => handleSort('amount')}
                 className="cursor-pointer"
               >
-                Designation <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-              </TableHead>
-              <TableHead
-                onClick={() => handleSort('departmentName')}
-                className="cursor-pointer"
-              >
-                Department <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Amount <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
@@ -280,34 +283,42 @@ const EmployeeLones = () => {
           <TableBody>
             {!lones || lones.data === undefined ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-4">
+                <TableCell colSpan={6} className="text-center py-4">
                   Loading lones...
                 </TableCell>
               </TableRow>
             ) : !lones.data || lones.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-4">
+                <TableCell colSpan={6} className="text-center py-4">
                   No lones found
                 </TableCell>
               </TableRow>
             ) : paginatedLones.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-4">
+                <TableCell colSpan={6} className="text-center py-4">
                   No lones match your search
                 </TableCell>
               </TableRow>
             ) : (
               paginatedLones.map((lone: any, index) => (
                 <TableRow key={index}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell className="font-medium">
-                    {lone.employeeName}
+                  <TableCell>
+                    {(currentPage - 1) * lonesPerPage + index + 1}
                   </TableCell>
-                  <TableCell>{lone.empCode}</TableCell>
-                  <TableCell>{lone.loneName}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium">{lone.employeeName}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {lone.empCode}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {lone.departmentName} · {lone.designationName}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{lone.employeeLoneName}</TableCell>
                   <TableCell>{lone.loneDate}</TableCell>
-                  <TableCell>{lone.designationName}</TableCell>
-                  <TableCell>{lone.departmentName}</TableCell>
+                  <TableCell>{lone.amount}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
@@ -323,7 +334,7 @@ const EmployeeLones = () => {
                         size="sm"
                         className="text-red-600 hover:text-red-700"
                         onClick={() => {
-                          setDeletingLoneId(lone.loneId)
+                          setDeletingLoneId(lone.employeeLoneId)
                           setIsDeleteDialogOpen(true)
                         }}
                       >
@@ -379,7 +390,6 @@ const EmployeeLones = () => {
                     </PaginationItem>
                   )
                 }
-
                 return null
               })}
 
@@ -409,13 +419,39 @@ const EmployeeLones = () => {
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="loneName">
+              <Label htmlFor="employee">
+                Employee <span className="text-red-500">*</span>
+              </Label>
+              <CustomCombobox
+                items={employeeItems}
+                value={
+                  formData.employeeId
+                    ? {
+                        id: formData.employeeId.toString(),
+                        name:
+                          employeeItems.find(
+                            (e) => e.id === formData.employeeId.toString()
+                          )?.name || '',
+                      }
+                    : null
+                }
+                onChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    employeeId: value ? Number(value.id) : 0,
+                  }))
+                }
+                placeholder="Select employee (Code - Name - Department - Designation)"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="employeeLoneName">
                 Lone Name <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="loneName"
-                name="loneName"
-                value={formData.loneName}
+                id="employeeLoneName"
+                name="employeeLoneName"
+                value={formData.employeeLoneName}
                 onChange={handleInputChange}
                 required
               />
@@ -434,14 +470,15 @@ const EmployeeLones = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="employeeId">
-                Employee ID <span className="text-red-500">*</span>
+              <Label htmlFor="amount">
+                Amount <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="employeeId"
-                name="employeeId"
+                id="amount"
+                name="amount"
                 type="number"
-                value={formData.employeeId || ''}
+                min={0}
+                value={formData.amount || ''}
                 onChange={handleInputChange}
                 required
               />

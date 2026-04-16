@@ -47,6 +47,7 @@ import {
   getAllDesignations,
   getAllEmployeeAttendances,
   getAllEmployeeLeaves,
+  getAllEmployeeLeaveTypes,
   getAllEmployeeOtherSalaryComponents,
   getAllEmployees,
   getAllEmployeeTypes,
@@ -71,13 +72,13 @@ import {
   CreateEmployeeTypeType,
   CreateHolidayType,
   CreateLeaveTypeType,
-  CreateLoneType,
+  CreateEmployeeLoneType,
   CreateOfficeTimingType,
   CreateOtherSalaryComponentType,
   CreateSalaryType,
   GetEmployeeAttendanceType,
   GetEmployeeLeaveType,
-  GetLoneType,
+  GetEmployeeLoneType,
   GetOfficeTimingType,
 } from '@/utils/type'
 
@@ -1536,7 +1537,7 @@ export const useAddLone = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (data: CreateLoneType) => {
+    mutationFn: (data: CreateEmployeeLoneType) => {
       return createLone(data, token)
     },
     onSuccess: (data) => {
@@ -1571,7 +1572,7 @@ export const useUpdateLone = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: GetLoneType }) => {
+    mutationFn: ({ id, data }: { id: number; data: GetEmployeeLoneType }) => {
       return editLone(id, data, token)
     },
     onSuccess: () => {
@@ -1638,6 +1639,23 @@ export const useGetEmployeeLeaves = () => {
         throw new Error('Token not found')
       }
       return getAllEmployeeLeaves(token)
+    },
+    enabled: !!token,
+    select: (data) => data,
+  })
+}
+
+export const useGetEmployeeLeaveTypes = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['employeeLeaveTypes'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getAllEmployeeLeaveTypes(token)
     },
     enabled: !!token,
     select: (data) => data,
