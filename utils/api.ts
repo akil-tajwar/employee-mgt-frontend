@@ -10,7 +10,7 @@ import {
   CreateEmployeeTypeType,
   CreateHolidayType,
   CreateLeaveTypeType,
-  CreateLoneType,
+  CreateEmployeeLoneType,
   CreateOfficeTimingType,
   CreateOtherSalaryComponentType,
   CreateSalaryType,
@@ -23,7 +23,7 @@ import {
   GetEmployeeTypeType,
   GetHolidayType,
   GetLeaveTypeType,
-  GetLoneType,
+  GetEmployeeLoneType,
   GetOfficeTimingType,
   GetOtherSalaryComponentType,
   GetSalaryType,
@@ -31,6 +31,7 @@ import {
   SignInRequest,
   SignInResponse,
   SignInResponseSchema,
+  GetEmployeeLeaveTypeType,
 } from '@/utils/type'
 
 export async function signIn(credentials: SignInRequest) {
@@ -664,8 +665,8 @@ export async function deleteSalary(id: number, token: string) {
 
 //lones
 export async function getAllLones(token: string) {
-  return fetchApi<GetLoneType[]>({
-    url: 'api/lones/getall',
+  return fetchApi<GetEmployeeLoneType[]>({
+    url: 'api/employeeLones/getall',
     method: 'GET',
     headers: {
       Authorization: token,
@@ -675,11 +676,11 @@ export async function getAllLones(token: string) {
 }
 
 export async function createLone(
-  data: CreateLoneType,
+  data: CreateEmployeeLoneType,
   token: string
 ) {
-  return fetchApi<CreateLoneType>({
-    url: 'api/lones/create',
+  return fetchApi<CreateEmployeeLoneType>({
+    url: 'api/employeeLones/create',
     method: 'POST',
     body: data,
     headers: {
@@ -691,11 +692,11 @@ export async function createLone(
 
 export async function editLone(
   id: number,
-  data: GetLoneType,
+  data: GetEmployeeLoneType,
   token: string
 ) {
-  return fetchApi<GetLoneType>({
-    url: `api/lones/edit/${id}`,
+  return fetchApi<GetEmployeeLoneType>({
+    url: `api/employeeLones/edit/${id}`,
     method: 'PATCH',
     body: data,
     headers: {
@@ -707,7 +708,7 @@ export async function editLone(
 
 export async function deleteLone(id: number, token: string) {
   return fetchApi<{ id: number }>({
-    url: `api/lones/delete/${id}`,
+    url: `api/employeeLones/delete/${id}`,
     method: 'DELETE',
     headers: {
       Authorization: token,
@@ -763,6 +764,17 @@ export async function deleteEmployeeLeave(id: number, token: string) {
   return fetchApi<{ id: number }>({
     url: `api/employeeLeaves/delete/${id}`,
     method: 'DELETE',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function getAllEmployeeLeaveTypes(token: string) {
+  return fetchApi<GetEmployeeLeaveTypeType[]>({
+    url: 'api/employeeLeaves/getallEmployeeLeaveTypes',
+    method: 'GET',
     headers: {
       Authorization: token,
       'Content-Type': 'application/json',

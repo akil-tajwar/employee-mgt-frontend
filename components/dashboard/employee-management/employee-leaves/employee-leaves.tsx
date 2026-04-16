@@ -26,6 +26,7 @@ import { Popup } from '@/utils/popup'
 import type {
   CreateEmployeeLeaveType,
   GetEmployeeLeaveType,
+  GetEmployeeLeaveTypeType,
 } from '@/utils/type'
 import { useInitializeUser, userDataAtom } from '@/utils/user'
 import { useAtom } from 'jotai'
@@ -33,7 +34,10 @@ import {
   useAddEmployeeLeave,
   useDeleteEmployeeLeave,
   useGetEmployeeLeaves,
+  useGetEmployeeLeaveTypes,
+  useGetAllEmployees,
   useUpdateEmployeeLeave,
+  useGetLeaveTypes,
 } from '@/hooks/use-api'
 import {
   AlertDialog,
@@ -44,13 +48,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { CustomCombobox } from '@/utils/custom-combobox'
+
+const calculateNoOfDays = (startDate: string, endDate: string): number => {
+  if (!startDate || !endDate) return 0
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return 0
+  const diffTime = end.getTime() - start.getTime()
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
+}
 
 const EmployeeLeaves = () => {
   useInitializeUser()
   const [userData] = useAtom(userDataAtom)
 
   const { data: employeeLeaves } = useGetEmployeeLeaves()
-  console.log('🚀 ~ EmployeeLeaves ~ employeeLeaves:', employeeLeaves)
+  const { data: leaveTypes } = useGetLeaveTypes()
+  console.log("🚀 ~ EmployeeLeaves ~ leaveTypes:", leaveTypes)
+  const { data: employees } = useGetAllEmployees()
+  const { data: employeeLeaveTypes } = useGetEmployeeLeaveTypes()
+  console.log("🚀 ~ EmployeeLeaves ~ employeeLeaveTypes:", employeeLeaveTypes)
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -77,17 +95,41 @@ const EmployeeLeaves = () => {
     createdBy: userData?.userId || 0,
   })
 
+  // Employee combobox items
+  const employeeItems = useMemo(() => {
+    if (!employees?.data) return []
+    return employees.data.map((emp: any) => ({
+      id: emp.employeeId.toString(),
+      name: `${emp.empCode} - ${emp.fullName} - ${emp.departmentName} - ${emp.designationName}`,
+    }))
+  }, [employees?.data])
+
+  // Leave type combobox items — filtered by selected employee
+  const leaveTypeItems = useMemo(() => {
+    if (!employeeLeaveTypes?.data || !formData.employeeId) return []
+    return (employeeLeaveTypes.data as GetEmployeeLeaveTypeType[])
+      .filter((lt) => lt.employeeId === formData.employeeId)
+      .map((lt) => ({
+        id: lt.leaveTypeId.toString(),
+        name: `${lt.leaveTypeName} (${lt.totalLeaves} days)`,
+      }))
+  }, [employeeLeaveTypes?.data, formData.employeeId])
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        name === 'employeeId' || name === 'noOfDays' || name === 'leaveTypeId'
-          ? Number(value)
-          : value,
-    }))
+
+    if (name === 'startDate' || name === 'endDate') {
+      const updated = { ...formData, [name]: value }
+      const noOfDays = calculateNoOfDays(
+        name === 'startDate' ? value : formData.startDate,
+        name === 'endDate' ? value : formData.endDate
+      )
+      setFormData({ ...updated, noOfDays })
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }))
+    }
   }
 
   const resetForm = useCallback(() => {
@@ -138,11 +180,15 @@ const EmployeeLeaves = () => {
 
   const filteredLeaves = useMemo(() => {
     if (!employeeLeaves?.data) return []
-    return employeeLeaves.data?.filter(
-      (leave) =>
+    return employeeLeaves.data.filter(
+      (leave: GetEmployeeLeaveType) =>
         leave.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        leave.empCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         leave.leaveTypeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        leave.empCode?.toLowerCase().includes(searchTerm.toLowerCase())
+        leave.departmentName
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        leave.designationName?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   }, [employeeLeaves?.data, searchTerm])
 
@@ -166,7 +212,6 @@ const EmployeeLeaves = () => {
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
-
       setError(null)
 
       try {
@@ -191,10 +236,8 @@ const EmployeeLeaves = () => {
             id: editingLeaveId,
             data: submitData as GetEmployeeLeaveType,
           })
-          console.log('update', isEditMode, editingLeaveId)
         } else {
           addMutation.mutate(submitData)
-          console.log('create')
         }
       } catch (err) {
         setError('Failed to save employee leave')
@@ -269,13 +312,7 @@ const EmployeeLeaves = () => {
                 onClick={() => handleSort('employeeName')}
                 className="cursor-pointer"
               >
-                Employee Name <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-              </TableHead>
-              <TableHead
-                onClick={() => handleSort('empCode')}
-                className="cursor-pointer"
-              >
-                Emp Code <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                Employee Details <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
                 onClick={() => handleSort('leaveTypeName')}
@@ -301,54 +338,49 @@ const EmployeeLeaves = () => {
               >
                 No. of Days <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
-              <TableHead
-                onClick={() => handleSort('designationName')}
-                className="cursor-pointer"
-              >
-                Designation <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-              </TableHead>
-              <TableHead
-                onClick={() => handleSort('departmentName')}
-                className="cursor-pointer"
-              >
-                Department <ArrowUpDown className="ml-2 h-4 w-4 inline" />
-              </TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {!employeeLeaves || employeeLeaves.data === undefined ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-4">
+                <TableCell colSpan={7} className="text-center py-4">
                   Loading employee leaves...
                 </TableCell>
               </TableRow>
             ) : !employeeLeaves.data || employeeLeaves.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-4">
+                <TableCell colSpan={7} className="text-center py-4">
                   No employee leaves found
                 </TableCell>
               </TableRow>
             ) : paginatedLeaves.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-4">
+                <TableCell colSpan={7} className="text-center py-4">
                   No employee leaves match your search
                 </TableCell>
               </TableRow>
             ) : (
               paginatedLeaves.map((leave: any, index) => (
                 <TableRow key={index}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell className="font-medium">
-                    {leave.employeeName}
+                  <TableCell>
+                    {(currentPage - 1) * leavesPerPage + index + 1}
                   </TableCell>
-                  <TableCell>{leave.empCode}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium">{leave.employeeName}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {leave.empCode}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {leave.departmentName} · {leave.designationName}
+                      </span>
+                    </div>
+                  </TableCell>
                   <TableCell>{leave.leaveTypeName}</TableCell>
                   <TableCell>{leave.startDate}</TableCell>
                   <TableCell>{leave.endDate}</TableCell>
                   <TableCell>{leave.noOfDays}</TableCell>
-                  <TableCell>{leave.designationName}</TableCell>
-                  <TableCell>{leave.departmentName}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
@@ -420,7 +452,6 @@ const EmployeeLeaves = () => {
                     </PaginationItem>
                   )
                 }
-
                 return null
               })}
 
@@ -449,32 +480,69 @@ const EmployeeLeaves = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid gap-4">
+            {/* Employee combobox */}
             <div className="space-y-2">
-              <Label htmlFor="employeeId">
-                Employee ID <span className="text-red-500">*</span>
+              <Label htmlFor="employee">
+                Employee <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="employeeId"
-                name="employeeId"
-                type="number"
-                value={formData.employeeId || ''}
-                onChange={handleInputChange}
-                required
+              <CustomCombobox
+                items={employeeItems}
+                value={
+                  formData.employeeId
+                    ? {
+                        id: formData.employeeId.toString(),
+                        name:
+                          employeeItems.find(
+                            (e) => e.id === formData.employeeId.toString()
+                          )?.name || '',
+                      }
+                    : null
+                }
+                onChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    employeeId: value ? Number(value.id) : 0,
+                    // Reset leave type when employee changes
+                    leaveTypeId: 0,
+                  }))
+                }
+                placeholder="Select employee (Code - Name - Department - Designation)"
               />
             </div>
+
+            {/* Leave type combobox — only enabled after employee is selected */}
             <div className="space-y-2">
-              <Label htmlFor="leaveTypeId">
-                Leave Type ID <span className="text-red-500">*</span>
+              <Label htmlFor="leaveType">
+                Leave Type <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="leaveTypeId"
-                name="leaveTypeId"
-                type="number"
-                value={formData.leaveTypeId || ''}
-                onChange={handleInputChange}
-                required
+              <CustomCombobox
+                items={leaveTypeItems}
+                value={
+                  formData.leaveTypeId
+                    ? {
+                        id: formData.leaveTypeId.toString(),
+                        name:
+                          leaveTypeItems.find(
+                            (lt) => lt.id === formData.leaveTypeId.toString()
+                          )?.name || '',
+                      }
+                    : null
+                }
+                onChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    leaveTypeId: value ? Number(value.id) : 0,
+                  }))
+                }
+                placeholder={
+                  formData.employeeId
+                    ? 'Select leave type'
+                    : 'Select an employee first'
+                }
+                disabled={!formData.employeeId}
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="startDate">
                 Start Date <span className="text-red-500">*</span>
@@ -488,6 +556,7 @@ const EmployeeLeaves = () => {
                 required
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="endDate">
                 End Date <span className="text-red-500">*</span>
@@ -501,20 +570,19 @@ const EmployeeLeaves = () => {
                 required
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="noOfDays">
-                No. of Days <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="noOfDays">No. of Days</Label>
               <Input
                 id="noOfDays"
                 name="noOfDays"
                 type="number"
-                min={1}
-                value={formData.noOfDays || ''}
-                onChange={handleInputChange}
-                required
+                value={formData.noOfDays}
+                readOnly
+                className="bg-muted cursor-not-allowed"
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Input

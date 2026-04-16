@@ -54,9 +54,6 @@ import {
 import Link from 'next/link'
 
 const Employees = () => {
-  useInitializeUser()
-  const [userData] = useAtom(userDataAtom)
-
   const { data: employees } = useGetAllEmployees()
   const { data: leaveTypes } = useGetLeaveTypes()
   const { data: departments } = useGetDepartments()
