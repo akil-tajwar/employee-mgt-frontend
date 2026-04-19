@@ -95,7 +95,7 @@ const Salaries = () => {
   const { data: employeeOtherSalaryComponents } =
     useGetEmployeeOtherSalaryComponents()
   const { data: employees } = useGetAllEmployees()
-  console.log("🚀 ~ Salaries ~ employees:", employees)
+  console.log('🚀 ~ Salaries ~ employees:', employees)
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -158,8 +158,8 @@ const Salaries = () => {
   /**
    * Authorization logic:
    * - Allowance: always counted regardless of isAuthorized
-   * - Deduction: only counted if isAuthorized !== 1 (i.e. NOT authorized → still pending/applied)
-   *   If isAuthorized === 1, skip the deduction.
+   * - Deduction: counted if isAuthorized !== 1 OR if otherSalaryComponentId === 6 (always counted)
+   *   If isAuthorized === 1 AND otherSalaryComponentId !== 6, skip the deduction.
    */
   const calcSalaries = useCallback(
     (
@@ -175,7 +175,11 @@ const Salaries = () => {
         .reduce((sum, c) => sum + c.amount, 0)
 
       const deductions = comps
-        .filter((c) => c.componentType === 'Deduction' && c.isAuthorized !== 1)
+        .filter(
+          (c) =>
+            c.componentType === 'Deduction' &&
+            (c.isAuthorized !== 1 || c.otherSalaryComponentId === 6)
+        )
         .reduce((sum, c) => sum + c.amount, 0)
 
       return {
@@ -399,19 +403,20 @@ const Salaries = () => {
                           .filter((c) => c.componentType === 'Allowance')
                           .reduce((sum, c) => sum + c.amount, 0)
 
-                        // Deductions: only count if isAuthorized !== 1
+                        // Deductions: count if isAuthorized !== 1 OR otherSalaryComponentId === 6
                         const deductionTotal = empComponents
                           .filter(
                             (c) =>
                               c.componentType === 'Deduction' &&
-                              c.isAuthorized !== 1
+                              (c.isAuthorized !== 1 ||
+                                c.otherSalaryComponentId === 6)
                           )
                           .reduce((sum, c) => sum + c.amount, 0)
 
                         return (
                           <>
                             <TableRow
-                              key={salaryId}
+                              key={index}
                               className="hover:bg-amber-50/50"
                             >
                               <TableCell className="w-10 pr-0">
@@ -469,7 +474,7 @@ const Salaries = () => {
                             {/* Accordion row for main table */}
                             {isExpanded && (
                               <TableRow
-                                key={`acc-${salaryId}`}
+                                key={`acc-${index}`}
                                 className="bg-amber-50/40"
                               >
                                 <TableCell colSpan={7} className="py-0 px-0">
@@ -479,7 +484,7 @@ const Salaries = () => {
                                       {salary.salary.salaryMonth}{' '}
                                       {salary.salary.salaryYear}
                                     </p>
-                                    <Table className='border'>
+                                    <Table className="border">
                                       <TableHeader>
                                         <TableRow className="bg-white">
                                           <TableHead className="text-xs w-20">
@@ -501,9 +506,11 @@ const Salaries = () => {
                                       </TableHeader>
                                       <TableBody>
                                         {empComponents.map((c, idx) => {
+                                          // isSkipped: deduction that is authorized AND not component 6
                                           const isSkipped =
                                             c.componentType === 'Deduction' &&
-                                            c.isAuthorized === 1
+                                            c.isAuthorized === 1 &&
+                                            c.otherSalaryComponentId !== 6
                                           return (
                                             <TableRow
                                               key={idx}
@@ -719,7 +726,7 @@ const Salaries = () => {
                 active)
               </Label>
               <div className="border rounded-lg overflow-hidden">
-                <Table className='border'>
+                <Table className="border">
                   <TableHeader className="bg-amber-50">
                     <TableRow>
                       <TableHead className="w-10" />
@@ -752,11 +759,13 @@ const Salaries = () => {
                           .filter((c) => c.componentType === 'Allowance')
                           .reduce((sum, c) => sum + c.amount, 0)
 
+                        // Deductions: count if isAuthorized !== 1 OR otherSalaryComponentId === 6
                         const deductionTotal = empComponents
                           .filter(
                             (c) =>
                               c.componentType === 'Deduction' &&
-                              c.isAuthorized !== 1
+                              (c.isAuthorized !== 1 ||
+                                c.otherSalaryComponentId === 6)
                           )
                           .reduce((sum, c) => sum + c.amount, 0)
 
@@ -765,7 +774,7 @@ const Salaries = () => {
                         return (
                           <>
                             <TableRow
-                              key={emp.employeeId}
+                              key={index}
                               className="hover:bg-amber-50/50"
                             >
                               <TableCell className="w-10 pr-0">
@@ -809,7 +818,7 @@ const Salaries = () => {
                             {/* Accordion row for popup */}
                             {isExpanded && (
                               <TableRow
-                                key={`popup-acc-${emp.employeeId}`}
+                                key={`popup-acc-${index}`}
                                 className="bg-amber-50/40"
                               >
                                 <TableCell colSpan={6} className="py-0 px-0">
@@ -817,7 +826,7 @@ const Salaries = () => {
                                     <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">
                                       Other salary components
                                     </p>
-                                    <Table className='border'>
+                                    <Table className="border">
                                       <TableHeader>
                                         <TableRow className="bg-white">
                                           <TableHead className="text-xs w-20">
@@ -839,9 +848,11 @@ const Salaries = () => {
                                       </TableHeader>
                                       <TableBody>
                                         {empComponents.map((c, idx) => {
+                                          // isSkipped: deduction that is authorized AND not component 6
                                           const isSkipped =
                                             c.componentType === 'Deduction' &&
-                                            c.isAuthorized === 1
+                                            c.isAuthorized === 1 &&
+                                            c.otherSalaryComponentId !== 6
                                           return (
                                             <TableRow
                                               key={idx}
