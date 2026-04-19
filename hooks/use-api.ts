@@ -112,22 +112,36 @@ export const useAddDepartment = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (data: CreateDepartmentType) => {
-      return createDepartment(data, token)
+    mutationFn: async (data: CreateDepartmentType) => {
+      const res = await createDepartment(data, token)
+      return res
     },
-    onSuccess: (data) => {
-      console.log('department added successfully:', data)
+    onSuccess: (res) => {
+      if (res?.error) {
+        toast({
+          title: 'Error',
+          variant: 'destructive',
+          description: res.error.message || 'Failed to create department',
+        })
+        return
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Department created successfully!',
+      })
+
       queryClient.invalidateQueries({ queryKey: ['departments'] })
-
-      // Reset form fields after success
       reset()
-
-      // Close the form modal
       onClose()
     },
-    onError: (error) => {
-      // Handle error
+    onError: (error: any) => {
       console.error('Error adding department:', error)
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+        description: error?.message || 'Unexpected error occurred',
+      })
     },
   })
 
@@ -232,22 +246,36 @@ export const useAddDesignation = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (data: CreateDesignationType) => {
-      return createDesignation(data, token)
+    mutationFn: async (data: CreateDesignationType) => {
+      const res = await createDesignation(data, token)
+      return res
     },
-    onSuccess: (data) => {
-      console.log('designation added successfully:', data)
+    onSuccess: (res) => {
+      if (res?.error) {
+        toast({
+          title: 'Error',
+          variant: 'destructive',
+          description: res.error.message || 'Failed to create designation',
+        })
+        return
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Designation created successfully!',
+      })
+
       queryClient.invalidateQueries({ queryKey: ['designations'] })
-
-      // Reset form fields after success
       reset()
-
-      // Close the form modal
       onClose()
     },
-    onError: (error) => {
-      // Handle error
+    onError: (error: any) => {
       console.error('Error adding designation:', error)
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+        description: error?.message || 'Unexpected error occurred',
+      })
     },
   })
 
@@ -352,22 +380,36 @@ export const useAddEmployeeType = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (data: CreateEmployeeTypeType) => {
-      return createEmployeeType(data, token)
+    mutationFn: async (data: CreateEmployeeTypeType) => {
+      const res = await createEmployeeType(data, token)
+      return res
     },
-    onSuccess: (data) => {
-      console.log('employee type added successfully:', data)
+    onSuccess: (res) => {
+      if (res?.error) {
+        toast({
+          title: 'Error',
+          variant: 'destructive',
+          description: res.error.message || 'Failed to create employee type',
+        })
+        return
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Employee type created successfully!',
+      })
+
       queryClient.invalidateQueries({ queryKey: ['employeeTypes'] })
-
-      // Reset form fields after success
       reset()
-
-      // Close the form modal
       onClose()
     },
-    onError: (error) => {
-      // Handle error
+    onError: (error: any) => {
       console.error('Error adding employeeType:', error)
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+        description: error?.message || 'Unexpected error occurred',
+      })
     },
   })
 
@@ -496,22 +538,36 @@ export const useAddOfficeTimingWeekend = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (data: CreateOfficeTimingType) => {
-      return createOfficeTimingWeekend(data, token)
+    mutationFn: async (data: CreateOfficeTimingType) => {
+      const res = await createOfficeTimingWeekend(data, token)
+      return res
     },
-    onSuccess: (data) => {
-      console.log('office timing weekend added successfully:', data)
+    onSuccess: (res) => {
+      if (res?.error) {
+        toast({
+          title: 'Error',
+          variant: 'destructive',
+          description: res.error.message || 'Failed to create office timing',
+        })
+        return
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Office timing created successfully!',
+      })
+
       queryClient.invalidateQueries({ queryKey: ['officeTimings'] })
-
-      // Reset form fields after success
       reset()
-
-      // Close the form modal
       onClose()
     },
-    onError: (error) => {
-      // Handle error
+    onError: (error: any) => {
       console.error('Error adding office timing:', error)
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+        description: error?.message || 'Unexpected error occurred',
+      })
     },
   })
 
@@ -599,19 +655,27 @@ export const useAddEmployee = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (formData: FormData) => {
-      return createEmployee(formData, token)
+    mutationFn: async (formData: FormData) => {
+      const res = await createEmployee(formData, token)
+      return res
     },
-    onSuccess: (data) => {
-      console.log('employees added successfully:', data)
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Employee created successfully!',
+      })
 
       queryClient.invalidateQueries({ queryKey: ['employees'] })
-
       reset()
       onClose()
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error adding employees:', error)
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+        description: error?.message || 'Unexpected error occurred',
+      })
     },
   })
 
@@ -664,7 +728,6 @@ export const useUpdateEmployeeWithFees = ({
 
   const mutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: FormData }) => {
-      // 🔥 data is already FormData — use it directly
       return editEmployee(id, data, token)
     },
     onSuccess: () => {
@@ -731,21 +794,36 @@ export const useAssignLeaveType = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: ({ data }: { data: AssignLeaveTypeType }) => {
-      return assignLeaveType(data, token)
+    mutationFn: async ({ data }: { data: AssignLeaveTypeType }) => {
+      const res = await assignLeaveType(data, token)
+      return res
     },
-    onSuccess: () => {
-      toast({
-        title: 'Success!',
-        description: 'leave type assigned successfully.',
-      })
-      queryClient.invalidateQueries({ queryKey: ['employees'] })
+    onSuccess: (res) => {
+      if (res?.error) {
+        toast({
+          title: 'Error',
+          variant: 'destructive',
+          description: res.error.message || 'Failed to assign leave type',
+        })
+        return
+      }
 
+      toast({
+        title: 'Success',
+        description: 'Leave type assigned successfully!',
+      })
+
+      queryClient.invalidateQueries({ queryKey: ['employees'] })
       reset()
       onClose()
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error assigning leaveType:', error)
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+        description: error?.message || 'Unexpected error occurred',
+      })
     },
   })
 
@@ -782,22 +860,36 @@ export const useAddHoliday = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (data: CreateHolidayType) => {
-      return createHoliday(data, token)
+    mutationFn: async (data: CreateHolidayType) => {
+      const res = await createHoliday(data, token)
+      return res
     },
-    onSuccess: (data) => {
-      console.log('holiday added successfully:', data)
+    onSuccess: (res) => {
+      if (res?.error) {
+        toast({
+          title: 'Error',
+          variant: 'destructive',
+          description: res.error.message || 'Failed to create holiday',
+        })
+        return
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Holiday created successfully!',
+      })
+
       queryClient.invalidateQueries({ queryKey: ['holidays'] })
-
-      // Reset form fields after success
       reset()
-
-      // Close the form modal
       onClose()
     },
-    onError: (error) => {
-      // Handle error
-      console.error('Error adding employeeType:', error)
+    onError: (error: any) => {
+      console.error('Error adding holiday:', error)
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+        description: error?.message || 'Unexpected error occurred',
+      })
     },
   })
 
@@ -831,7 +923,7 @@ export const useUpdateHoliday = ({
       onClose()
     },
     onError: (error) => {
-      console.error('Error editing employeeType:', error)
+      console.error('Error editing holiday:', error)
     },
   })
 
@@ -902,22 +994,36 @@ export const useAddLeaveType = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (data: CreateLeaveTypeType) => {
-      return createLeaveType(data, token)
+    mutationFn: async (data: CreateLeaveTypeType) => {
+      const res = await createLeaveType(data, token)
+      return res
     },
-    onSuccess: (data) => {
-      console.log('leave type added successfully:', data)
+    onSuccess: (res) => {
+      if (res?.error) {
+        toast({
+          title: 'Error',
+          variant: 'destructive',
+          description: res.error.message || 'Failed to create leave type',
+        })
+        return
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Leave type created successfully!',
+      })
+
       queryClient.invalidateQueries({ queryKey: ['leaveTypes'] })
-
-      // Reset form fields after success
       reset()
-
-      // Close the form modal
       onClose()
     },
-    onError: (error) => {
-      // Handle error
+    onError: (error: any) => {
       console.error('Error adding leaveType:', error)
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+        description: error?.message || 'Unexpected error occurred',
+      })
     },
   })
 
@@ -1023,37 +1129,38 @@ export const useAddEmployeeAttendance = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (data: CreateEmployeeAttendanceType) => {
-      return createEmployeeAttendance(data, token)
+    mutationFn: async (data: CreateEmployeeAttendanceType) => {
+      const res = await createEmployeeAttendance(data, token)
+      return res
     },
-
-    onSuccess: (response) => {
-      // Expect backend to return { status: 'success', data, message? }
-      if (!response?.error) {
-        console.log('✅ Employee attendance added successfully:', response.data)
-
-        queryClient.invalidateQueries({ queryKey: ['employeeAttendances'] })
-        reset()
-        onClose()
-      } else {
-        // Backend returned something unexpected
-        console.warn('⚠ Unexpected response from server:', response)
+    onSuccess: (res) => {
+      if (res?.error) {
         toast({
-          title: 'Error!',
+          title: 'Error',
           variant: 'destructive',
           description:
-            (response?.error?.details as any)?.message ||
+            (res.error?.details as any)?.message ||
+            res.error.message ||
             'Failed to add employee attendance.',
         })
+        return
       }
-    },
 
-    onError: (error: any) => {
-      console.error('❌ Error adding employee attendance:', error)
       toast({
-        title: 'Error!',
+        title: 'Success',
+        description: 'Employee attendance added successfully!',
+      })
+
+      queryClient.invalidateQueries({ queryKey: ['employeeAttendances'] })
+      reset()
+      onClose()
+    },
+    onError: (error: any) => {
+      console.error('Error adding employee attendance:', error)
+      toast({
+        title: 'Error',
         variant: 'destructive',
-        description: 'Failed to add employee attendance.',
+        description: error?.message || 'Failed to add employee attendance.',
       })
     },
   })
@@ -1165,22 +1272,37 @@ export const useAddOtherSalaryComponent = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (data: CreateOtherSalaryComponentType) => {
-      return createOtherSalaryComponent(data, token)
+    mutationFn: async (data: CreateOtherSalaryComponentType) => {
+      const res = await createOtherSalaryComponent(data, token)
+      return res
     },
-    onSuccess: (data) => {
-      console.log('other salary component added successfully:', data)
+    onSuccess: (res) => {
+      if (res?.error) {
+        toast({
+          title: 'Error',
+          variant: 'destructive',
+          description:
+            res.error.message || 'Failed to create other salary component',
+        })
+        return
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Other salary component created successfully!',
+      })
+
       queryClient.invalidateQueries({ queryKey: ['otherSalaryComponents'] })
-
-      // Reset form fields after success
       reset()
-
-      // Close the form modal
       onClose()
     },
-    onError: (error) => {
-      // Handle error
+    onError: (error: any) => {
       console.error('Error adding other salary component:', error)
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+        description: error?.message || 'Unexpected error occurred',
+      })
     },
   })
 
@@ -1220,7 +1342,7 @@ export const useUpdateOtherSalaryComponent = ({
       onClose()
     },
     onError: (error) => {
-      console.error('Error editing employeeType:', error)
+      console.error('Error editing other salary component:', error)
     },
   })
 
@@ -1261,7 +1383,7 @@ export const useDeleteOtherSalaryComponent = ({
   return mutation
 }
 
-//employee other salary compoennents
+//employee other salary components
 export const useGetEmployeeOtherSalaryComponents = () => {
   const [token] = useAtom(tokenAtom)
   useInitializeUser()
@@ -1291,22 +1413,40 @@ export const useAddEmployeeOtherSalaryComponent = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (data: CreateEmployeeOtherSalaryComponentType) => {
-      return createEmployeeOtherSalaryComponent(data, token)
+    mutationFn: async (data: CreateEmployeeOtherSalaryComponentType) => {
+      const res = await createEmployeeOtherSalaryComponent(data, token)
+      return res
     },
-    onSuccess: (data) => {
-      console.log('employee other salary component added successfully:', data)
-      queryClient.invalidateQueries({ queryKey: ['employeeOtherSalaryComponents'] })
+    onSuccess: (res) => {
+      if (res?.error) {
+        toast({
+          title: 'Error',
+          variant: 'destructive',
+          description:
+            res.error.message ||
+            'Failed to create employee other salary component',
+        })
+        return
+      }
 
-      // Reset form fields after success
+      toast({
+        title: 'Success',
+        description: 'Employee other salary component created successfully!',
+      })
+
+      queryClient.invalidateQueries({
+        queryKey: ['employeeOtherSalaryComponents'],
+      })
       reset()
-
-      // Close the form modal
       onClose()
     },
-    onError: (error) => {
-      // Handle error
+    onError: (error: any) => {
       console.error('Error adding employee other salary component:', error)
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+        description: error?.message || 'Unexpected error occurred',
+      })
     },
   })
 
@@ -1340,13 +1480,15 @@ export const useUpdateEmployeeOtherSalaryComponent = ({
         title: 'Success!',
         description: 'Employee other salary component edited successfully.',
       })
-      queryClient.invalidateQueries({ queryKey: ['employeeOtherSalaryComponents'] })
+      queryClient.invalidateQueries({
+        queryKey: ['employeeOtherSalaryComponents'],
+      })
 
       reset()
       onClose()
     },
     onError: (error) => {
-      console.error('Error editing employeeType:', error)
+      console.error('Error editing employee other salary component:', error)
     },
   })
 
@@ -1374,7 +1516,9 @@ export const useDeleteEmployeeOtherSalaryComponent = ({
         title: 'Success!',
         description: 'Employee other salary component is deleted successfully.',
       })
-      queryClient.invalidateQueries({ queryKey: ['employeeOtherSalaryComponents'] })
+      queryClient.invalidateQueries({
+        queryKey: ['employeeOtherSalaryComponents'],
+      })
 
       reset()
       onClose()
@@ -1417,22 +1561,36 @@ export const useAddSalary = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (data: CreateSalaryType) => {
-      return createSalary(data, token)
+    mutationFn: async (data: CreateSalaryType) => {
+      const res = await createSalary(data, token)
+      return res
     },
-    onSuccess: (data) => {
-      console.log('salary added successfully:', data)
+    onSuccess: (res) => {
+      if (res?.error) {
+        toast({
+          title: 'Error',
+          variant: 'destructive',
+          description: res.error.message || 'Failed to create salary',
+        })
+        return
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Salary created successfully!',
+      })
+
       queryClient.invalidateQueries({ queryKey: ['salaries'] })
-
-      // Reset form fields after success
       reset()
-
-      // Close the form modal
       onClose()
     },
-    onError: (error) => {
-      // Handle error
+    onError: (error: any) => {
       console.error('Error adding salary:', error)
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+        description: error?.message || 'Unexpected error occurred',
+      })
     },
   })
 
@@ -1537,22 +1695,36 @@ export const useAddLone = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (data: CreateEmployeeLoneType) => {
-      return createLone(data, token)
+    mutationFn: async (data: CreateEmployeeLoneType) => {
+      const res = await createLone(data, token)
+      return res
     },
-    onSuccess: (data) => {
-      console.log('lone added successfully:', data)
+    onSuccess: (res) => {
+      if (res?.error) {
+        toast({
+          title: 'Error',
+          variant: 'destructive',
+          description: res.error.message || 'Failed to create lone',
+        })
+        return
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Lone created successfully!',
+      })
+
       queryClient.invalidateQueries({ queryKey: ['lones'] })
-
-      // Reset form fields after success
       reset()
-
-      // Close the form modal
       onClose()
     },
-    onError: (error) => {
-      // Handle error
+    onError: (error: any) => {
       console.error('Error adding lone:', error)
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+        description: error?.message || 'Unexpected error occurred',
+      })
     },
   })
 
@@ -1674,22 +1846,35 @@ export const useAddEmployeeLeave = ({
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (data: CreateEmployeeLeaveType) => {
-      return createEmployeeLeave(data, token)
+    mutationFn: async (data: CreateEmployeeLeaveType) => {
+      const res = await createEmployeeLeave(data, token)
+      return res
     },
-    onSuccess: (data) => {
-      console.log('Employee leave added successfully:', data)
+    onSuccess: (res) => {
+      if (res?.error) {
+        toast({
+          title: 'Error',
+          variant: 'destructive',
+          description: res.error.message || 'Failed to create employee leave',
+        })
+        return
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Employee leave created successfully!',
+      })
+
       queryClient.invalidateQueries({ queryKey: ['employeeLeaves'] })
-
-      // Reset form fields after success
       reset()
-
-      // Close the form modal
       onClose()
     },
-    onError: (error) => {
-      // Handle error
-      console.error('Error adding lone:', error)
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+        description: error?.message || 'Unexpected error occurred',
+      })
     },
   })
 
