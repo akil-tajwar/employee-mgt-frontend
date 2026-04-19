@@ -254,12 +254,6 @@ const EmployeeLeaves = () => {
     ]
   )
 
-  useEffect(() => {
-    if (addMutation.error || updateMutation.error) {
-      setError('Error saving employee leave')
-    }
-  }, [addMutation.error, updateMutation.error])
-
   const handleEditClick = (leave: any) => {
     setFormData({
       employeeId: leave.employeeId,
