@@ -49,6 +49,7 @@ const EmployeeLones = () => {
   const [userData] = useAtom(userDataAtom)
 
   const { data: lones } = useGetLones()
+  console.log('🚀 ~ EmployeeLones ~ lones:', lones)
   const { data: employees } = useGetAllEmployees()
 
   const [error, setError] = useState<string | null>(null)
@@ -71,6 +72,8 @@ const EmployeeLones = () => {
     loneDate: '',
     employeeId: 0,
     amount: 0,
+    perMonth: 0,
+    description: '',
     createdBy: userData?.userId || 0,
   })
 
@@ -98,6 +101,8 @@ const EmployeeLones = () => {
       loneDate: '',
       employeeId: 0,
       amount: 0,
+      perMonth: 0,
+      description: '',
       createdBy: userData?.userId || 0,
     })
     setEditingLoneId(null)
@@ -142,7 +147,9 @@ const EmployeeLones = () => {
       (lone: GetEmployeeLoneType) =>
         lone.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lone.empCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lone.employeeLoneName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lone.employeeLoneName
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         lone.departmentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lone.designationName?.toLowerCase().includes(searchTerm.toLowerCase())
     )
@@ -176,6 +183,8 @@ const EmployeeLones = () => {
           loneDate: formData.loneDate,
           employeeId: formData.employeeId,
           amount: formData.amount,
+          perMonth: formData.perMonth,
+          description: formData.description,
           createdBy: formData.createdBy,
         }
 
@@ -213,6 +222,8 @@ const EmployeeLones = () => {
       loneDate: lone.loneDate,
       employeeId: lone.employeeId,
       amount: lone.amount,
+      perMonth: lone.perMonth,
+      description: lone.description || '',
       createdBy: userData?.userId || 0,
     })
     setEditingLoneId(lone.employeeLoneId)
@@ -277,30 +288,42 @@ const EmployeeLones = () => {
               >
                 Amount <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
+              <TableHead
+                onClick={() => handleSort('perMonth')}
+                className="cursor-pointer"
+              >
+                Per Month <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              </TableHead>
+              <TableHead
+                onClick={() => handleSort('description')}
+                className="cursor-pointer"
+              >
+                Description <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+              </TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {!lones || lones.data === undefined ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={8} className="text-center py-4">
                   Loading lones...
                 </TableCell>
               </TableRow>
             ) : !lones.data || lones.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={8} className="text-center py-4">
                   No lones found
                 </TableCell>
               </TableRow>
             ) : paginatedLones.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={8} className="text-center py-4">
                   No lones match your search
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedLones.map((lone: any, index) => (
+              paginatedLones.map((lone, index) => (
                 <TableRow key={index}>
                   <TableCell>
                     {(currentPage - 1) * lonesPerPage + index + 1}
@@ -319,6 +342,8 @@ const EmployeeLones = () => {
                   <TableCell>{lone.employeeLoneName}</TableCell>
                   <TableCell>{lone.loneDate}</TableCell>
                   <TableCell>{lone.amount}</TableCell>
+                  <TableCell>{lone.perMonth}</TableCell>
+                  <TableCell>{lone.description}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
@@ -334,7 +359,7 @@ const EmployeeLones = () => {
                         size="sm"
                         className="text-red-600 hover:text-red-700"
                         onClick={() => {
-                          setDeletingLoneId(lone.employeeLoneId)
+                          setDeletingLoneId(lone?.employeeLoneId ?? null)
                           setIsDeleteDialogOpen(true)
                         }}
                       >
@@ -414,7 +439,7 @@ const EmployeeLones = () => {
         isOpen={isPopupOpen}
         onClose={closePopup}
         title={isEditMode ? 'Edit Lone' : 'Add Lone'}
-        size="sm:max-w-md"
+        size="max-w-lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid gap-4">
@@ -444,43 +469,70 @@ const EmployeeLones = () => {
                 placeholder="Select employee (Code - Name - Department - Designation)"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="employeeLoneName">
-                Lone Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="employeeLoneName"
-                name="employeeLoneName"
-                value={formData.employeeLoneName}
-                onChange={handleInputChange}
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="employeeLoneName">
+                  Lone Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="employeeLoneName"
+                  name="employeeLoneName"
+                  value={formData.employeeLoneName}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="loneDate">
+                  Lone Date <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="loneDate"
+                  name="loneDate"
+                  type="date"
+                  value={formData.loneDate}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="amount">
+                  Amount <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="amount"
+                  name="amount"
+                  type="number"
+                  min={0}
+                  value={formData.amount || ''}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="perMonth">
+                  Per Month <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="perMonth"
+                  name="perMonth"
+                  type="number"
+                  min={0}
+                  value={formData.perMonth || ''}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="loneDate">
-                Lone Date <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="description">Description</Label>
               <Input
-                id="loneDate"
-                name="loneDate"
-                type="date"
-                value={formData.loneDate}
+                id="description"
+                name="description"
+                value={formData.description || ''}
                 onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="amount">
-                Amount <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="amount"
-                name="amount"
-                type="number"
-                min={0}
-                value={formData.amount || ''}
-                onChange={handleInputChange}
-                required
               />
             </div>
           </div>

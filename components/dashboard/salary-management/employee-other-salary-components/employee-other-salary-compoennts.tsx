@@ -99,6 +99,19 @@ const defaultFormData: SalaryComponentFormData = {
   isAuthorized: 1,
 }
 
+/**
+ * Helper: should this deduction be counted in net salary?
+ * - Always count if otherSalaryComponentId === 6 (regardless of isAuthorized)
+ * - Otherwise count only if isAuthorized === 0
+ */
+const isDeductionCounted = (
+  i: GetEmployeeOtherSalaryComponentType
+): boolean => {
+  if (i.componentType !== 'Deduction') return false
+  if (i.otherSalaryComponentId === 6) return true
+  return i.isAuthorized === 0
+}
+
 const EmployeeOtherSalaryComponents = () => {
   useInitializeUser()
   const [userData] = useAtom(userDataAtom)
@@ -205,8 +218,7 @@ const EmployeeOtherSalaryComponents = () => {
               totalAmount: items.reduce((sum, i) => {
                 if (i.componentType === 'Allowance')
                   return sum + (i.amount || 0)
-                if (i.componentType === 'Deduction' && i.isAuthorized === 0)
-                  return sum - (i.amount || 0)
+                if (isDeductionCounted(i)) return sum - (i.amount || 0)
                 return sum
               }, 0),
             })
@@ -215,8 +227,7 @@ const EmployeeOtherSalaryComponents = () => {
             .flat()
             .reduce((sum, i) => {
               if (i.componentType === 'Allowance') return sum + (i.amount || 0)
-              if (i.componentType === 'Deduction' && i.isAuthorized === 0)
-                return sum - (i.amount || 0)
+              if (isDeductionCounted(i)) return sum - (i.amount || 0)
               return sum
             }, 0),
           totalEmployees: Object.keys(employeeGroups).length,
@@ -476,90 +487,99 @@ const EmployeeOtherSalaryComponents = () => {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {empGroup.items.map((item, index) => (
-                                <TableRow
-                                  key={
-                                    item.employeeOtherSalaryComponentId || index
-                                  }
-                                  className="hover:bg-amber-50/50"
-                                >
-                                  <TableCell className="font-medium text-gray-600">
-                                    {index + 1}
-                                  </TableCell>
-                                  <TableCell className="font-medium">
-                                    {item.componentName}
-                                  </TableCell>
-                                  <TableCell>
-                                    <span
-                                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                        item.componentType === 'Allowance'
-                                          ? 'bg-green-100 text-green-700'
-                                          : 'bg-red-100 text-red-700'
-                                      }`}
-                                    >
-                                      {item.componentType === 'Allowance'
-                                        ? '+ Allowance'
-                                        : '− Deduction'}
-                                    </span>
-                                  </TableCell>
-                                  <TableCell>{item.salaryMonth}</TableCell>
-                                  <TableCell>{item.salaryYear}</TableCell>
-                                  <TableCell>
-                                    <span
-                                      className={`font-semibold ${
-                                        item.componentType === 'Allowance'
-                                          ? 'text-green-600'
-                                          : item.isAuthorized === 0
-                                            ? 'text-red-600'
-                                            : 'text-gray-400 line-through'
-                                      }`}
-                                    >
-                                      {item.componentType === 'Allowance'
-                                        ? '+'
-                                        : '−'}{' '}
-                                      {item.amount.toLocaleString()}
-                                    </span>
-                                  </TableCell>
-                                  <TableCell>
-                                    {item.isAuthorized ? (
-                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
-                                        <CheckCircle className="h-3 w-3" />{' '}
-                                        Authorized
-                                      </span>
-                                    ) : (
-                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                                        <XCircle className="h-3 w-3" />{' '}
-                                        Unauthorized
-                                      </span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <div className="flex justify-end gap-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                                        onClick={() => handleEditClick(item)}
+                              {empGroup.items.map((item, index) => {
+                                // isSkipped: deduction that is authorized AND not component 6
+                                const isSkipped =
+                                  item.componentType === 'Deduction' &&
+                                  item.isAuthorized === 1 &&
+                                  item.otherSalaryComponentId !== 6
+
+                                return (
+                                  <TableRow
+                                    key={
+                                      item.employeeOtherSalaryComponentId ||
+                                      index
+                                    }
+                                    className="hover:bg-amber-50/50"
+                                  >
+                                    <TableCell className="font-medium text-gray-600">
+                                      {index + 1}
+                                    </TableCell>
+                                    <TableCell className="font-medium">
+                                      {item.componentName}
+                                    </TableCell>
+                                    <TableCell>
+                                      <span
+                                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                          item.componentType === 'Allowance'
+                                            ? 'bg-green-100 text-green-700'
+                                            : 'bg-red-100 text-red-700'
+                                        }`}
                                       >
-                                        <Edit2 className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        onClick={() => {
-                                          setDeletingId(
-                                            item.employeeOtherSalaryComponentId!
-                                          )
-                                          setIsDeleteDialogOpen(true)
-                                        }}
+                                        {item.componentType === 'Allowance'
+                                          ? '+ Allowance'
+                                          : '− Deduction'}
+                                      </span>
+                                    </TableCell>
+                                    <TableCell>{item.salaryMonth}</TableCell>
+                                    <TableCell>{item.salaryYear}</TableCell>
+                                    <TableCell>
+                                      <span
+                                        className={`font-semibold ${
+                                          item.componentType === 'Allowance'
+                                            ? 'text-green-600'
+                                            : isSkipped
+                                              ? 'text-gray-400 line-through'
+                                              : 'text-red-600'
+                                        }`}
                                       >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                                        {item.componentType === 'Allowance'
+                                          ? '+'
+                                          : '−'}{' '}
+                                        {item.amount.toLocaleString()}
+                                      </span>
+                                    </TableCell>
+                                    <TableCell>
+                                      {item.isAuthorized ? (
+                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
+                                          <CheckCircle className="h-3 w-3" />{' '}
+                                          Authorized
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                          <XCircle className="h-3 w-3" />{' '}
+                                          Unauthorized
+                                        </span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <div className="flex justify-end gap-2">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                          onClick={() => handleEditClick(item)}
+                                        >
+                                          <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                          onClick={() => {
+                                            setDeletingId(
+                                              item.employeeOtherSalaryComponentId!
+                                            )
+                                            setIsDeleteDialogOpen(true)
+                                          }}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                )
+                              })}
                             </TableBody>
                           </Table>
                         </AccordionContent>
