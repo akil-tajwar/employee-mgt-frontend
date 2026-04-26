@@ -848,11 +848,11 @@ const Salaries = () => {
                                       </TableHeader>
                                       <TableBody>
                                         {empComponents.map((c, idx) => {
-                                          // isSkipped: deduction that is authorized AND not component 6
+                                          // isSkipped: deduction that is authorized AND isLoneFee !== 1
                                           const isSkipped =
                                             c.componentType === 'Deduction' &&
                                             c.isAuthorized === 1 &&
-                                            c.otherSalaryComponentId !== 6
+                                            c.isLoneFee !== 1
                                           return (
                                             <TableRow
                                               key={idx}

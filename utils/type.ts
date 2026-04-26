@@ -232,6 +232,9 @@ export const otherSalaryComponentSchema = z.object({
   amount: z.number(),
   forDays: z.number(),
   status: z.number(),
+  isAbsentFee: z.number().int().min(0).max(1),
+  isLoneFee: z.number().int().min(0).max(1),
+  isLateEarlyOutFee: z.number().int().min(0).max(1),
   createdBy: z.number(),
   createdAt: z.number().optional(),
   updatedBy: z.number().optional(),
@@ -325,6 +328,9 @@ export type GetEmployeeOtherSalaryComponentType = z.infer<
   employeeDesignationName: string
   componentName: string
   componentType: 'Allowance' | 'Deduction'
+  isAbsentFee: number
+  isLoneFee: number
+  isLateEarlyOutFee: number
 }
 
 export const employeeLonesSchema = z.object({

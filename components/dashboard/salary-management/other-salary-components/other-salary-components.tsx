@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -57,10 +58,7 @@ const OtherSalaryComponents = () => {
   const [userData] = useAtom(userDataAtom)
 
   const { data: otherSalaryComponents } = useGetOtherSalaryComponents()
-  console.log(
-    '🚀 ~ OtherSalaryComponents ~ otherSalaryComponents:',
-    otherSalaryComponents
-  )
+  console.log("🚀 ~ OtherSalaryComponents ~ otherSalaryComponents:", otherSalaryComponents)
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -81,46 +79,92 @@ const OtherSalaryComponents = () => {
     null
   )
 
-  const [formData, setFormData] = useState<CreateOtherSalaryComponentType>({
-    componentName: '',
-    componentType: 'Allowance',
-    amount: 0,
-    forDays: 0,
-    status: 1,
-    createdBy: userData?.userId || 0,
-  })
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
-  }
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
-  }
-
-  const resetForm = useCallback(() => {
-    setFormData({
+  const getDefaultForm = useCallback(
+    (): CreateOtherSalaryComponentType => ({
       componentName: '',
       componentType: 'Allowance',
       amount: 0,
       forDays: 0,
       status: 1,
+      isAbsentFee: 0,
+      isLoneFee: 0,
+      isLateEarlyOutFee: 0,
       createdBy: userData?.userId || 0,
-    })
+    }),
+    [userData?.userId]
+  )
+
+  const [formData, setFormData] =
+    useState<CreateOtherSalaryComponentType>(getDefaultForm)
+
+  // Derived: is isLoneFee checked — hides amount & forDays
+  const isLoneFeeChecked = formData.isLoneFee === 1
+  const isAbsentFeeChecked = formData.isAbsentFee === 1
+  const isLateEarlyOutFeehecked = formData.isLateEarlyOutFee === 1
+
+  // Check if any existing record already has isAbsentFee or isLoneFee = 1
+  // excluding the currently edited record
+  const existingAbsentFee = useMemo(() => {
+    return (
+      otherSalaryComponents?.data?.some(
+        (c) =>
+          c.isAbsentFee === 1 && c.otherSalaryComponentId !== editingComponentId
+      ) ?? false
+    )
+  }, [otherSalaryComponents?.data, editingComponentId])
+
+  const existingLoneFee = useMemo(() => {
+    return (
+      otherSalaryComponents?.data?.some(
+        (c) =>
+          c.isLoneFee === 1 && c.otherSalaryComponentId !== editingComponentId
+      ) ?? false
+    )
+  }, [otherSalaryComponents?.data, editingComponentId])
+
+  const existingisLateEarlyOutFee = useMemo(() => {
+    return (
+      otherSalaryComponents?.data?.some(
+        (c) =>
+          c.isLateEarlyOutFee === 1 && c.otherSalaryComponentId !== editingComponentId
+      ) ?? false
+    )
+  }, [otherSalaryComponents?.data, editingComponentId])
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleCheckboxChange = (
+    field: 'isAbsentFee' | 'isisLateEarlyOutFee' | 'isLoneFee',
+    checked: boolean
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      isAbsentFee:
+        field === 'isAbsentFee' ? (checked ? 1 : 0) : prev.isAbsentFee,
+      isLateEarlyOutFee:
+        field === 'isisLateEarlyOutFee' ? (checked ? 1 : 0) : prev.isLateEarlyOutFee,
+      isLoneFee: field === 'isLoneFee' ? (checked ? 1 : 0) : prev.isLoneFee,
+      // Reset amount/forDays to 0 when switching to LoneFee
+      ...(field === 'isLoneFee' && checked ? { amount: 0, forDays: 0 } : {}),
+    }))
+  }
+
+  const resetForm = useCallback(() => {
+    setFormData(getDefaultForm())
     setEditingComponentId(null)
     setIsEditMode(false)
     setIsPopupOpen(false)
     setError(null)
-  }, [userData?.userId])
+  }, [getDefaultForm])
 
   const closePopup = useCallback(() => {
     setIsPopupOpen(false)
@@ -132,12 +176,10 @@ const OtherSalaryComponents = () => {
     onClose: closePopup,
     reset: resetForm,
   })
-
   const updateMutation = useUpdateOtherSalaryComponent({
     onClose: closePopup,
     reset: resetForm,
   })
-
   const deleteMutation = useDeleteOtherSalaryComponent({
     onClose: closePopup,
     reset: resetForm,
@@ -154,7 +196,7 @@ const OtherSalaryComponents = () => {
 
   const filteredComponents = useMemo(() => {
     if (!otherSalaryComponents?.data) return []
-    return otherSalaryComponents.data?.filter((comp) =>
+    return otherSalaryComponents.data.filter((comp) =>
       comp.componentName?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   }, [otherSalaryComponents?.data, searchTerm])
@@ -182,34 +224,40 @@ const OtherSalaryComponents = () => {
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
-
       setError(null)
+
+      // Guard: only one isAbsentFee and one isLoneFee allowed
+      if (formData.isAbsentFee === 1 && existingAbsentFee) {
+        setError('An absent fee component already exists. Only one is allowed.')
+        return
+      }
+      if (formData.isLoneFee === 1 && existingLoneFee) {
+        setError('A lone fee component already exists. Only one is allowed.')
+        return
+      }
 
       try {
         const submitData: CreateOtherSalaryComponentType = {
           componentName: formData.componentName,
           componentType: formData.componentType,
-          amount: Number(formData.amount),
-          forDays: Number(formData.forDays),
+          // Force 0 for amount/forDays when isLoneFee is checked
+          amount: isLoneFeeChecked ? 0 : Number(formData.amount),
+          forDays: isLoneFeeChecked ? 0 : Number(formData.forDays),
           status: formData.status,
-          createdBy: formData.createdBy,
+          isAbsentFee: formData.isAbsentFee,
+          isLoneFee: formData.isLoneFee,
+          isLateEarlyOutFee: formData.isLateEarlyOutFee,
+          createdBy: userData?.userId || 0,
         }
 
         if (isEditMode) {
           submitData.updatedBy = userData?.userId || 0
-        } else {
-          submitData.createdBy = userData?.userId || 0
         }
 
         if (isEditMode && editingComponentId) {
-          updateMutation.mutate({
-            id: editingComponentId,
-            data: submitData,
-          })
-          console.log('update', isEditMode, editingComponentId)
+          updateMutation.mutate({ id: editingComponentId, data: submitData })
         } else {
           addMutation.mutate(submitData)
-          console.log('create')
         }
       } catch (err) {
         setError('Failed to save salary component')
@@ -220,6 +268,9 @@ const OtherSalaryComponents = () => {
       formData,
       isEditMode,
       editingComponentId,
+      isLoneFeeChecked,
+      existingAbsentFee,
+      existingLoneFee,
       addMutation,
       updateMutation,
       userData,
@@ -239,6 +290,9 @@ const OtherSalaryComponents = () => {
       amount: Number(comp.amount),
       forDays: Number(comp.forDays),
       status: comp.status,
+      isAbsentFee: comp.isAbsentFee ?? 0,
+      isLoneFee: comp.isLoneFee ?? 0,
+      isLateEarlyOutFee: comp.isLateEarlyOutFee ?? 0,
       createdBy: userData?.userId || 0,
     })
     setEditingComponentId(comp.otherSalaryComponentId)
@@ -292,7 +346,7 @@ const OtherSalaryComponents = () => {
                 Amount <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
               <TableHead
-                onClick={() => handleSort('amount')}
+                onClick={() => handleSort('forDays')}
                 className="cursor-pointer"
               >
                 For Days <ArrowUpDown className="ml-2 h-4 w-4 inline" />
@@ -303,6 +357,9 @@ const OtherSalaryComponents = () => {
               >
                 Type <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
+              <TableHead>Absent Fee</TableHead>
+              <TableHead>Lone Fee</TableHead>
+              <TableHead>Late/Early Out Fee</TableHead>
               <TableHead
                 onClick={() => handleSort('status')}
                 className="cursor-pointer"
@@ -316,20 +373,20 @@ const OtherSalaryComponents = () => {
             {!otherSalaryComponents ||
             otherSalaryComponents.data === undefined ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={9} className="text-center py-4">
                   Loading salary components...
                 </TableCell>
               </TableRow>
             ) : !otherSalaryComponents.data ||
               otherSalaryComponents.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={9} className="text-center py-4">
                   No salary components found
                 </TableCell>
               </TableRow>
             ) : paginatedComponents.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={9} className="text-center py-4">
                   No salary components match your search
                 </TableCell>
               </TableRow>
@@ -351,6 +408,39 @@ const OtherSalaryComponents = () => {
                       }`}
                     >
                       {comp.componentType}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        comp.isAbsentFee === 1
+                           ? 'bg-purple-100 text-purple-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {comp.isAbsentFee === 1 ? 'Yes' : 'No'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        comp.isLoneFee === 1
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {comp.isLoneFee === 1 ? 'Yes' : 'No'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        comp.isLateEarlyOutFee === 1
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {comp.isLateEarlyOutFee === 1 ? 'Yes' : 'No'}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -408,7 +498,6 @@ const OtherSalaryComponents = () => {
                   }
                 />
               </PaginationItem>
-
               {[...Array(totalPages)].map((_, index) => {
                 if (
                   index === 0 ||
@@ -435,10 +524,8 @@ const OtherSalaryComponents = () => {
                     </PaginationItem>
                   )
                 }
-
                 return null
               })}
-
               <PaginationItem>
                 <PaginationNext
                   onClick={() =>
@@ -460,7 +547,7 @@ const OtherSalaryComponents = () => {
         isOpen={isPopupOpen}
         onClose={closePopup}
         title={isEditMode ? 'Edit Salary Component' : 'Add Salary Component'}
-        size="sm:max-w-md"
+        size="sm:max-w-lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid gap-4">
@@ -477,33 +564,90 @@ const OtherSalaryComponents = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="amount">
-                Amount <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="amount"
-                name="amount"
-                type='number'
-                value={formData.amount}
-                onChange={handleInputChange}
-                required
-              />
+            {/* Checkboxes */}
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="isAbsentFee"
+                  checked={isAbsentFeeChecked}
+                  onCheckedChange={(checked) =>
+                    handleCheckboxChange('isAbsentFee', checked === true)
+                  }
+                  disabled={existingAbsentFee && !isAbsentFeeChecked}
+                />
+                <Label htmlFor="isAbsentFee" className="cursor-pointer">
+                  Absent Fee
+                </Label>
+                {existingAbsentFee && !isAbsentFeeChecked && (
+                  <span className="text-xs text-gray-400">(already set)</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="isisLateEarlyOutFee"
+                  checked={isLateEarlyOutFeehecked}
+                  onCheckedChange={(checked) =>
+                    handleCheckboxChange('isisLateEarlyOutFee', checked === true)
+                  }
+                  disabled={existingisLateEarlyOutFee && !isLateEarlyOutFeehecked}
+                />
+                <Label htmlFor="isisLateEarlyOutFee" className="cursor-pointer">
+                  Late/Early Out Fee
+                </Label>
+                {existingisLateEarlyOutFee && !isLateEarlyOutFeehecked && (
+                  <span className="text-xs text-gray-400">(already set)</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="isLoneFee"
+                  checked={isLoneFeeChecked}
+                  onCheckedChange={(checked) =>
+                    handleCheckboxChange('isLoneFee', checked === true)
+                  }
+                  disabled={existingLoneFee && !isLoneFeeChecked}
+                />
+                <Label htmlFor="isLoneFee" className="cursor-pointer">
+                  Lone Fee
+                </Label>
+                {existingLoneFee && !isLoneFeeChecked && (
+                  <span className="text-xs text-gray-400">(already set)</span>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="forDays">
-                For Days <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="forDays"
-                name="forDays"
-                type='number'
-                value={formData.forDays}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
+            {/* Amount & ForDays — hidden when isLoneFee is checked */}
+            {!isLoneFeeChecked && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="amount">
+                    Amount <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="amount"
+                    name="amount"
+                    type="number"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="forDays">
+                    For Days <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="forDays"
+                    name="forDays"
+                    type="number"
+                    value={formData.forDays}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="componentType">

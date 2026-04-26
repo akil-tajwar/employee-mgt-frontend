@@ -108,8 +108,8 @@ const isDeductionCounted = (
   i: GetEmployeeOtherSalaryComponentType
 ): boolean => {
   if (i.componentType !== 'Deduction') return false
-  if (i.otherSalaryComponentId === 6) return true
-  return i.isAuthorized === 0
+  if (i.isLoneFee === 1) return true // lone fee: always count regardless of isAuthorized
+  return i.isAuthorized === 0 // regular deduction: only count if unauthorized
 }
 
 const EmployeeOtherSalaryComponents = () => {
@@ -492,7 +492,7 @@ const EmployeeOtherSalaryComponents = () => {
                                 const isSkipped =
                                   item.componentType === 'Deduction' &&
                                   item.isAuthorized === 1 &&
-                                  item.otherSalaryComponentId !== 6
+                                  item.isLoneFee !== 1
 
                                 return (
                                   <TableRow
