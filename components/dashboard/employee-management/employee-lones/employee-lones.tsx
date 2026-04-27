@@ -21,16 +21,33 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
-import { ArrowUpDown, Search, Banknote, Edit2, Trash2 } from 'lucide-react'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
+  ArrowUpDown,
+  Search,
+  Banknote,
+  Edit2,
+  Trash2,
+  SkipForward,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react'
 import { Popup } from '@/utils/popup'
 import type { CreateEmployeeLoneType, GetEmployeeLoneType } from '@/utils/type'
 import { useInitializeUser, userDataAtom } from '@/utils/user'
 import { useAtom } from 'jotai'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   useAddLone,
   useDeleteLone,
   useGetAllEmployees,
+  useGetEmployeeOtherSalaryComponents,
   useGetLones,
+  useSkipLone,
   useUpdateLone,
 } from '@/hooks/use-api'
 import {
@@ -44,13 +61,47 @@ import {
 } from '@/components/ui/alert-dialog'
 import { CustomCombobox } from '@/utils/custom-combobox'
 
+// Helper: check if a lone installment (salaryYear/salaryMonth) is current or future
+const isCurrentOrFuture = (
+  salaryYear: number,
+  salaryMonth: string
+): boolean => {
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1 // 1-based
+
+  const monthMap: Record<string, number> = {
+    January: 1,
+    February: 2,
+    March: 3,
+    April: 4,
+    May: 5,
+    June: 6,
+    July: 7,
+    August: 8,
+    September: 9,
+    October: 10,
+    November: 11,
+    December: 12,
+  }
+  const instMonth = monthMap[salaryMonth] ?? parseInt(salaryMonth, 10)
+
+  if (salaryYear > currentYear) return true
+  if (salaryYear === currentYear && instMonth >= currentMonth) return true
+  return false
+}
+
 const EmployeeLones = () => {
   useInitializeUser()
   const [userData] = useAtom(userDataAtom)
 
+  const queryClient = useQueryClient()
+
   const { data: lones } = useGetLones()
-  console.log('🚀 ~ EmployeeLones ~ lones:', lones)
   const { data: employees } = useGetAllEmployees()
+  const { data: employeeOtherSalaryComponents } =
+    useGetEmployeeOtherSalaryComponents()
+  console.log("🚀 ~ EmployeeLones ~ employeeOtherSalaryComponents:", employeeOtherSalaryComponents)
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -66,6 +117,18 @@ const EmployeeLones = () => {
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deletingLoneId, setDeletingLoneId] = useState<number | null>(null)
+
+  // Skip lone state
+  const [isSkipDialogOpen, setIsSkipDialogOpen] = useState(false)
+  const [skippingInstallment, setSkippingInstallment] = useState<{
+    employeeOtherSalaryComponentId: number
+    salaryMonth: string
+    salaryYear: number
+    componentName: string
+  } | null>(null)
+
+  // Track which lone accordion rows are expanded
+  const [expandedLoneIds, setExpandedLoneIds] = useState<Set<number>>(new Set())
 
   const [formData, setFormData] = useState<CreateEmployeeLoneType>({
     employeeLoneName: '',
@@ -84,6 +147,20 @@ const EmployeeLones = () => {
       name: `${emp.empCode} - ${emp.fullName} - ${emp.departmentName} - ${emp.designationName}`,
     }))
   }, [employees?.data])
+
+  // Group employeeOtherSalaryComponents by employeeLoneId
+  // Only filter by employeeLoneId != null — isLoneFee may not be reliably set
+  const loneInstallmentsMap = useMemo(() => {
+    if (!employeeOtherSalaryComponents?.data) return {}
+    const map: Record<number, any[]> = {}
+    for (const comp of employeeOtherSalaryComponents.data) {
+      if (comp.employeeLoneId != null) {
+        if (!map[comp.employeeLoneId]) map[comp.employeeLoneId] = []
+        map[comp.employeeLoneId].push(comp)
+      }
+    }
+    return map
+  }, [employeeOtherSalaryComponents?.data])
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -115,21 +192,24 @@ const EmployeeLones = () => {
     setIsPopupOpen(false)
     setError(null)
     resetForm()
-  }, [resetForm])
+    queryClient.invalidateQueries({
+      queryKey: ['employeeOtherSalaryComponents'],
+    })
+    queryClient.invalidateQueries({ queryKey: ['lones'] })
+  }, [resetForm, queryClient])
 
-  const addMutation = useAddLone({
-    onClose: closePopup,
-    reset: resetForm,
-  })
-
+  const addMutation = useAddLone({ onClose: closePopup, reset: resetForm })
   const updateMutation = useUpdateLone({
     onClose: closePopup,
     reset: resetForm,
   })
-
   const deleteMutation = useDeleteLone({
     onClose: closePopup,
     reset: resetForm,
+  })
+  const skipMutation = useSkipLone({
+    onClose: () => setIsSkipDialogOpen(false),
+    reset: () => setSkippingInstallment(null),
   })
 
   const handleSort = (column: keyof GetEmployeeLoneType) => {
@@ -176,7 +256,6 @@ const EmployeeLones = () => {
     async (e: React.FormEvent) => {
       e.preventDefault()
       setError(null)
-
       try {
         const submitData: CreateEmployeeLoneType = {
           employeeLoneName: formData.employeeLoneName,
@@ -187,13 +266,11 @@ const EmployeeLones = () => {
           description: formData.description,
           createdBy: formData.createdBy,
         }
-
         if (isEditMode) {
           submitData.updatedBy = userData?.userId || 0
         } else {
           submitData.createdBy = userData?.userId || 0
         }
-
         if (isEditMode && editingLoneId) {
           updateMutation.mutate({
             id: editingLoneId,
@@ -231,6 +308,39 @@ const EmployeeLones = () => {
     setIsPopupOpen(true)
   }
 
+  const toggleAccordion = (loneId: number) => {
+    setExpandedLoneIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(loneId)) {
+        next.delete(loneId)
+      } else {
+        next.add(loneId)
+      }
+      return next
+    })
+  }
+
+  const handleSkipClick = (installment: any) => {
+    setSkippingInstallment({
+      employeeOtherSalaryComponentId:
+        installment.employeeOtherSalaryComponentId,
+      salaryMonth: installment.salaryMonth,
+      salaryYear: installment.salaryYear,
+      componentName: installment.componentName,
+    })
+    setIsSkipDialogOpen(true)
+  }
+
+  const handleSkipConfirm = () => {
+    if (skippingInstallment) {
+      skipMutation.mutate({
+        employeeOtherSalaryComponentId:
+          skippingInstallment.employeeOtherSalaryComponentId,
+        updatedBy: userData?.userId || 0,
+      })
+    }
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -263,6 +373,7 @@ const EmployeeLones = () => {
         <Table>
           <TableHeader className="bg-amber-100">
             <TableRow>
+              <TableHead className="w-8" />
               <TableHead>Sl No.</TableHead>
               <TableHead
                 onClick={() => handleSort('employeeName')}
@@ -306,69 +417,254 @@ const EmployeeLones = () => {
           <TableBody>
             {!lones || lones.data === undefined ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-4">
+                <TableCell colSpan={9} className="text-center py-4">
                   Loading lones...
                 </TableCell>
               </TableRow>
             ) : !lones.data || lones.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-4">
+                <TableCell colSpan={9} className="text-center py-4">
                   No lones found
                 </TableCell>
               </TableRow>
             ) : paginatedLones.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-4">
+                <TableCell colSpan={9} className="text-center py-4">
                   No lones match your search
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedLones.map((lone, index) => (
-                <TableRow key={index}>
-                  <TableCell>
-                    {(currentPage - 1) * lonesPerPage + index + 1}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="font-medium">{lone.employeeName}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {lone.empCode}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {lone.departmentName} · {lone.designationName}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{lone.employeeLoneName}</TableCell>
-                  <TableCell>{lone.loneDate}</TableCell>
-                  <TableCell>{lone.amount}</TableCell>
-                  <TableCell>{lone.perMonth}</TableCell>
-                  <TableCell>{lone.description}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-amber-600 hover:text-amber-700"
-                        onClick={() => handleEditClick(lone)}
+              paginatedLones.map((lone, index) => {
+                const loneInstallments =
+                  loneInstallmentsMap[lone.employeeLoneId ?? -1] ?? []
+                const isExpanded = expandedLoneIds.has(
+                  lone.employeeLoneId ?? -1
+                )
+
+                return (
+                  <>
+                    {/* Main lone row */}
+                    <TableRow key={index}>
+                      <TableCell className="w-8">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-0 h-6 w-6"
+                          disabled={loneInstallments.length === 0}
+                          onClick={() =>
+                            toggleAccordion(lone.employeeLoneId ?? -1)
+                          }
+                          title={
+                            loneInstallments.length === 0
+                              ? 'No installments'
+                              : isExpanded
+                                ? 'Collapse installments'
+                                : 'View installments'
+                          }
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4 text-amber-600" />
+                          ) : (
+                            <ChevronRight
+                              className={`h-4 w-4 ${
+                                loneInstallments.length === 0
+                                  ? 'text-gray-200'
+                                  : 'text-gray-400'
+                              }`}
+                            />
+                          )}
+                        </Button>
+                      </TableCell>
+                      <TableCell>
+                        {(currentPage - 1) * lonesPerPage + index + 1}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-medium">
+                            {lone.employeeName}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {lone.empCode}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {lone.departmentName} · {lone.designationName}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{lone.employeeLoneName}</TableCell>
+                      <TableCell>{lone.loneDate}</TableCell>
+                      <TableCell>{lone.amount}</TableCell>
+                      <TableCell>{lone.perMonth}</TableCell>
+                      <TableCell>{lone.description}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          {/* <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-amber-600 hover:text-amber-700"
+                            onClick={() => handleEditClick(lone)}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button> */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => {
+                              setDeletingLoneId(lone?.employeeLoneId ?? null)
+                              setIsDeleteDialogOpen(true)
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+
+                    {/* Accordion: installments sub-table */}
+                    {isExpanded && loneInstallments.length > 0 && (
+                      <TableRow
+                        key={`accordion-${index}`}
+                        className="bg-amber-50/60"
                       >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700"
-                        onClick={() => {
-                          setDeletingLoneId(lone?.employeeLoneId ?? null)
-                          setIsDeleteDialogOpen(true)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                        <TableCell colSpan={9} className="p-0">
+                          <div className="px-8 py-3">
+                            <p className="text-xs font-semibold text-amber-700 mb-2 uppercase tracking-wide">
+                              Installments for {lone.employeeLoneName}
+                            </p>
+                            <Table>
+                              <TableHeader>
+                                <TableRow className="bg-amber-100/70">
+                                  <TableHead className="py-2 text-xs">
+                                    Sl No.
+                                  </TableHead>
+                                  <TableHead className="py-2 text-xs">
+                                    Component
+                                  </TableHead>
+                                  <TableHead className="py-2 text-xs">
+                                    Salary Month
+                                  </TableHead>
+                                  <TableHead className="py-2 text-xs">
+                                    Salary Year
+                                  </TableHead>
+                                  <TableHead className="py-2 text-xs">
+                                    Amount
+                                  </TableHead>
+                                  <TableHead className="py-2 text-xs">
+                                    Type
+                                  </TableHead>
+                                  <TableHead className="py-2 text-xs">
+                                    Authorized
+                                  </TableHead>
+                                  <TableHead className="py-2 text-xs">
+                                    Status
+                                  </TableHead>
+                                  <TableHead className="py-2 text-xs text-right">
+                                    Action
+                                  </TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {loneInstallments.map((inst, instIdx) => {
+                                  const alreadySkipped = !!inst.isSkipped
+                                  const canSkip =
+                                    !alreadySkipped &&
+                                    isCurrentOrFuture(
+                                      inst.salaryYear,
+                                      inst.salaryMonth
+                                    )
+                                  return (
+                                    <TableRow
+                                      key={instIdx}
+                                      className={`text-sm ${alreadySkipped ? 'opacity-60' : ''}`}
+                                    >
+                                      <TableCell className="py-2 text-xs">
+                                        {instIdx + 1}
+                                      </TableCell>
+                                      <TableCell className="py-2 text-xs">
+                                        {inst.componentName}
+                                      </TableCell>
+                                      <TableCell className="py-2 text-xs">
+                                        {inst.salaryMonth}
+                                      </TableCell>
+                                      <TableCell className="py-2 text-xs">
+                                        {inst.salaryYear}
+                                      </TableCell>
+                                      <TableCell className="py-2 text-xs">
+                                        {inst.amount}
+                                      </TableCell>
+                                      <TableCell className="py-2 text-xs">
+                                        <span
+                                          className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                            inst.componentType === 'Deduction'
+                                              ? 'bg-red-100 text-red-700'
+                                              : 'bg-green-100 text-green-700'
+                                          }`}
+                                        >
+                                          {inst.componentType}
+                                        </span>
+                                      </TableCell>
+                                      <TableCell className="py-2 text-xs">
+                                        <span
+                                          className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                            inst.isAuthorized
+                                              ? 'bg-blue-100 text-blue-700'
+                                              : 'bg-gray-100 text-gray-500'
+                                          }`}
+                                        >
+                                          {inst.isAuthorized ? 'Yes' : 'No'}
+                                        </span>
+                                      </TableCell>
+                                      <TableCell className="py-2 text-xs">
+                                        <span
+                                          className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                            alreadySkipped
+                                              ? 'bg-orange-100 text-orange-700'
+                                              : 'bg-emerald-100 text-emerald-700'
+                                          }`}
+                                        >
+                                          {alreadySkipped
+                                            ? 'Skipped'
+                                            : 'Active'}
+                                        </span>
+                                      </TableCell>
+                                      <TableCell className="py-2 text-xs text-right">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className={`h-7 px-2 text-xs ${
+                                            canSkip
+                                              ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'
+                                              : 'text-gray-500 cursor-not-allowed'
+                                          }`}
+                                          disabled={!canSkip || alreadySkipped}
+                                          onClick={() =>
+                                            canSkip && handleSkipClick(inst)
+                                          }
+                                          title={
+                                            alreadySkipped
+                                              ? 'Already skipped'
+                                              : canSkip
+                                                ? 'Skip this installment'
+                                                : 'Cannot skip past installments'
+                                          }
+                                        >
+                                          <SkipForward className="h-3.5 w-3.5 mr-1" />
+                                          Skip
+                                        </Button>
+                                      </TableCell>
+                                    </TableRow>
+                                  )
+                                })}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                )
+              })
             )}
           </TableBody>
         </Table>
@@ -388,7 +684,6 @@ const EmployeeLones = () => {
                   }
                 />
               </PaginationItem>
-
               {[...Array(totalPages)].map((_, index) => {
                 if (
                   index === 0 ||
@@ -396,7 +691,7 @@ const EmployeeLones = () => {
                   (index >= currentPage - 2 && index <= currentPage + 2)
                 ) {
                   return (
-                    <PaginationItem key={`page-${index}`}>
+                    <PaginationItem key={index}>
                       <PaginationLink
                         onClick={() => setCurrentPage(index + 1)}
                         isActive={currentPage === index + 1}
@@ -410,14 +705,13 @@ const EmployeeLones = () => {
                   index === currentPage + 3
                 ) {
                   return (
-                    <PaginationItem key={`ellipsis-${index}`}>
+                    <PaginationItem key={`e-${index}`}>
                       <PaginationLink>...</PaginationLink>
                     </PaginationItem>
                   )
                 }
                 return null
               })}
-
               <PaginationItem>
                 <PaginationNext
                   onClick={() =>
@@ -435,6 +729,7 @@ const EmployeeLones = () => {
         </div>
       )}
 
+      {/* Add / Edit Popup */}
       <Popup
         isOpen={isPopupOpen}
         onClose={closePopup}
@@ -559,6 +854,7 @@ const EmployeeLones = () => {
         </form>
       </Popup>
 
+      {/* Delete Alert Dialog */}
       <AlertDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
@@ -585,6 +881,42 @@ const EmployeeLones = () => {
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               Delete
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Skip Installment Alert Dialog */}
+      <AlertDialog open={isSkipDialogOpen} onOpenChange={setIsSkipDialogOpen}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Skip Lone Installment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to skip the{' '}
+              <strong>
+                {skippingInstallment?.salaryMonth}{' '}
+                {skippingInstallment?.salaryYear}
+              </strong>{' '}
+              installment for{' '}
+              <strong>{skippingInstallment?.componentName}</strong>? This will
+              defer the installment to the next month.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <AlertDialogCancel
+              onClick={() => {
+                setIsSkipDialogOpen(false)
+                setSkippingInstallment(null)
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSkipConfirm}
+              disabled={skipMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {skipMutation.isPending ? 'Skipping...' : 'Skip Installment'}
             </AlertDialogAction>
           </div>
         </AlertDialogContent>

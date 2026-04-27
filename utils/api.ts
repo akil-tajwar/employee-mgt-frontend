@@ -717,6 +717,21 @@ export async function deleteLone(id: number, token: string) {
   })
 }
 
+export async function skipLone(
+  employeeOtherSalaryComponentId: number,
+  updatedBy: number,
+  token: string
+) {
+  return fetchApi<any>({
+    url: `api/employeeLones/skipLone/${employeeOtherSalaryComponentId}/${updatedBy}`,
+    method: 'POST',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
 //employee leaves
 export async function getAllEmployeeLeaves(token: string) {
   return fetchApi<GetEmployeeLeaveType[]>({

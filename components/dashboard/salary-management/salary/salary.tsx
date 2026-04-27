@@ -35,6 +35,8 @@ import {
   Trash2,
   Calendar,
   ChevronDown,
+  XCircle,
+  CheckCircle,
 } from 'lucide-react'
 import { Popup } from '@/utils/popup'
 import type {
@@ -94,6 +96,10 @@ const Salaries = () => {
   const { data: salaries } = useGetSalaries()
   const { data: employeeOtherSalaryComponents } =
     useGetEmployeeOtherSalaryComponents()
+  console.log(
+    '🚀 ~ Salaries ~ employeeOtherSalaryComponents:',
+    employeeOtherSalaryComponents
+  )
   const { data: employees } = useGetAllEmployees()
   console.log('🚀 ~ Salaries ~ employees:', employees)
 
@@ -178,7 +184,8 @@ const Salaries = () => {
         .filter(
           (c) =>
             c.componentType === 'Deduction' &&
-            (c.isAuthorized !== 1 || c.otherSalaryComponentId === 6)
+            (c.isAuthorized !== 1 || c.isLoneFee === 1) &&
+            c.isSkipped !== 1
         )
         .reduce((sum, c) => sum + c.amount, 0)
 
@@ -408,8 +415,8 @@ const Salaries = () => {
                           .filter(
                             (c) =>
                               c.componentType === 'Deduction' &&
-                              (c.isAuthorized !== 1 ||
-                                c.otherSalaryComponentId === 6)
+                              (c.isAuthorized !== 1 || c.isLoneFee === 1) &&
+                              c.isSkipped !== 1
                           )
                           .reduce((sum, c) => sum + c.amount, 0)
 
@@ -497,7 +504,7 @@ const Salaries = () => {
                                             Type
                                           </TableHead>
                                           <TableHead className="text-xs">
-                                            Authorized
+                                            status
                                           </TableHead>
                                           <TableHead className="text-xs text-right">
                                             Amount
@@ -510,7 +517,8 @@ const Salaries = () => {
                                           const isSkipped =
                                             c.componentType === 'Deduction' &&
                                             c.isAuthorized === 1 &&
-                                            c.otherSalaryComponentId !== 6
+                                            c.isLoneFee !== 1 &&
+                                            c.isSkipped === 1
                                           return (
                                             <TableRow
                                               key={idx}
@@ -539,23 +547,39 @@ const Salaries = () => {
                                                 </span>
                                               </TableCell>
                                               <TableCell>
-                                                <span
-                                                  className={cn(
-                                                    'px-2 py-0.5 rounded-full text-xs font-semibold',
-                                                    c.isAuthorized === 1
-                                                      ? 'bg-blue-100 text-blue-700'
-                                                      : 'bg-gray-100 text-gray-600'
-                                                  )}
-                                                >
-                                                  {c.isAuthorized === 1
-                                                    ? 'Authorized'
-                                                    : 'Pending'}
-                                                </span>
-                                                {isSkipped && (
-                                                  <span className="ml-2 text-xs text-gray-400 italic">
-                                                    (not counted)
-                                                  </span>
-                                                )}
+                                                {(() => {
+                                                  const isSkippedFinal =
+                                                    c.isAuthorized === 1 &&
+                                                    c.isSkipped === 1
+                                                  const isAuthorizedFinal =
+                                                    c.isAuthorized === 1 &&
+                                                    c.isSkipped === 0
+
+                                                  if (isSkippedFinal) {
+                                                    return (
+                                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                                        <XCircle className="h-3 w-3" />{' '}
+                                                        Skipped
+                                                      </span>
+                                                    )
+                                                  }
+
+                                                  if (isAuthorizedFinal) {
+                                                    return (
+                                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
+                                                        <CheckCircle className="h-3 w-3" />{' '}
+                                                        Authorized
+                                                      </span>
+                                                    )
+                                                  }
+
+                                                  return (
+                                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                                      <XCircle className="h-3 w-3" />{' '}
+                                                      Unauthorized
+                                                    </span>
+                                                  )
+                                                })()}
                                               </TableCell>
                                               <TableCell className="text-right font-medium text-sm">
                                                 <span
@@ -839,7 +863,7 @@ const Salaries = () => {
                                             Type
                                           </TableHead>
                                           <TableHead className="text-xs">
-                                            Authorized
+                                            status
                                           </TableHead>
                                           <TableHead className="text-xs text-right">
                                             Amount
@@ -852,7 +876,8 @@ const Salaries = () => {
                                           const isSkipped =
                                             c.componentType === 'Deduction' &&
                                             c.isAuthorized === 1 &&
-                                            c.isLoneFee !== 1
+                                            c.isLoneFee !== 1 &&
+                                            c.isSkipped === 1
                                           return (
                                             <TableRow
                                               key={idx}
@@ -881,23 +906,39 @@ const Salaries = () => {
                                                 </span>
                                               </TableCell>
                                               <TableCell>
-                                                <span
-                                                  className={cn(
-                                                    'px-2 py-0.5 rounded-full text-xs font-semibold',
-                                                    c.isAuthorized === 1
-                                                      ? 'bg-blue-100 text-blue-700'
-                                                      : 'bg-gray-100 text-gray-600'
-                                                  )}
-                                                >
-                                                  {c.isAuthorized === 1
-                                                    ? 'Authorized'
-                                                    : 'Pending'}
-                                                </span>
-                                                {isSkipped && (
-                                                  <span className="ml-2 text-xs text-gray-400 italic">
-                                                    (not counted)
-                                                  </span>
-                                                )}
+                                                {(() => {
+                                                  const isSkippedFinal =
+                                                    c.isAuthorized === 1 &&
+                                                    c.isSkipped === 1
+                                                  const isAuthorizedFinal =
+                                                    c.isAuthorized === 1 &&
+                                                    c.isSkipped === 0
+
+                                                  if (isSkippedFinal) {
+                                                    return (
+                                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                                        <XCircle className="h-3 w-3" />{' '}
+                                                        Skipped
+                                                      </span>
+                                                    )
+                                                  }
+
+                                                  if (isAuthorizedFinal) {
+                                                    return (
+                                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
+                                                        <CheckCircle className="h-3 w-3" />{' '}
+                                                        Authorized
+                                                      </span>
+                                                    )
+                                                  }
+
+                                                  return (
+                                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                                      <XCircle className="h-3 w-3" />{' '}
+                                                      Unauthorized
+                                                    </span>
+                                                  )
+                                                })()}
                                               </TableCell>
                                               <TableCell className="text-right font-medium text-sm">
                                                 <span

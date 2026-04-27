@@ -61,6 +61,7 @@ import {
   getAttendanceReport,
   getEmployeeById,
   getSalaryReport,
+  skipLone,
 } from '@/utils/api'
 import {
   AssignLeaveTypeType,
@@ -1720,6 +1721,81 @@ export const useAddLone = ({
     },
     onError: (error: any) => {
       console.error('Error adding lone:', error)
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+        description: error?.message || 'Unexpected error occurred',
+      })
+    },
+  })
+
+  return mutation
+}
+
+export const useSkipLone = ({
+  onClose,
+  reset,
+  onSuccess,
+}: {
+  onClose: () => void
+  reset: () => void
+  onSuccess?: () => void
+}) => {
+  useInitializeUser()
+  const [token] = useAtom(tokenAtom)
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: async ({
+      employeeOtherSalaryComponentId,
+      updatedBy,
+    }: {
+      employeeOtherSalaryComponentId: number
+      updatedBy: number
+    }) => {
+      const res = await skipLone(
+        employeeOtherSalaryComponentId,
+        updatedBy,
+        token
+      )
+      return res
+    },
+    onSuccess: (res) => {
+      if (res?.error) {
+        toast({
+          title: 'Error',
+          variant: 'destructive',
+          description: res.error.message || 'Failed to skip lone installment',
+        })
+        return
+      }
+
+      toast({
+        title: 'Success',
+        description:
+          res.data?.message || 'Lone installment skipped successfully!',
+      })
+
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['lones'] })
+      queryClient.invalidateQueries({
+        queryKey: ['employeeOtherSalaryComponents'],
+      })
+
+      // If we have the employeeLoneId from response, invalidate specific lone query
+      const employeeLoneId = res.data?.employeeLoneId
+      if (employeeLoneId) {
+        queryClient.invalidateQueries({
+          queryKey: ['lone', employeeLoneId],
+        })
+      }
+
+      reset()
+      onClose()
+      if (onSuccess) onSuccess()
+    },
+    onError: (error: any) => {
+      console.error('Error skipping lone:', error)
       toast({
         title: 'Error',
         variant: 'destructive',
