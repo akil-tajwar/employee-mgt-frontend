@@ -1,6 +1,6 @@
 'use client'
 
-import type React from 'react'
+import React from 'react'
 import { useCallback, useEffect, useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -481,7 +481,7 @@ const Salaries = () => {
                             {/* Accordion row for main table */}
                             {isExpanded && (
                               <TableRow
-                                key={`acc-${index}`}
+                                key={`index`}
                                 className="bg-amber-50/40"
                               >
                                 <TableCell colSpan={7} className="py-0 px-0">
@@ -651,7 +651,7 @@ const Salaries = () => {
                   (index >= currentPage - 2 && index <= currentPage + 2)
                 ) {
                   return (
-                    <PaginationItem key={`page-${index}`}>
+                    <PaginationItem key={`index`}>
                       <PaginationLink
                         onClick={() => setCurrentPage(index + 1)}
                         isActive={currentPage === index + 1}
@@ -713,8 +713,8 @@ const Salaries = () => {
                   <SelectValue placeholder="Select month" />
                 </SelectTrigger>
                 <SelectContent>
-                  {MONTHS.map((m) => (
-                    <SelectItem key={m} value={m}>
+                  {MONTHS.map((m, index) => (
+                    <SelectItem key={index} value={m}>
                       {m}
                     </SelectItem>
                   ))}
@@ -749,6 +749,7 @@ const Salaries = () => {
                 {employees.data.filter((e: any) => e.isActive === 1).length}{' '}
                 active)
               </Label>
+
               <div className="border rounded-lg overflow-hidden">
                 <Table className="border">
                   <TableHeader className="bg-amber-50">
@@ -761,11 +762,13 @@ const Salaries = () => {
                       <TableHead>Net Salary</TableHead>
                     </TableRow>
                   </TableHeader>
+
                   <TableBody>
                     {employees.data
                       .filter((e: any) => e.isActive === 1)
                       .map((emp: any, index: number) => {
                         const basicSalary: number = emp.basicSalary ?? 0
+
                         const { grossSalary, netSalary } = calcSalaries(
                           emp.employeeId,
                           form.salaryMonth,
@@ -783,7 +786,6 @@ const Salaries = () => {
                           .filter((c) => c.componentType === 'Allowance')
                           .reduce((sum, c) => sum + c.amount, 0)
 
-                        // Deductions: count if isAuthorized !== 1 OR otherSalaryComponentId === 6
                         const deductionTotal = empComponents
                           .filter(
                             (c) =>
@@ -796,11 +798,9 @@ const Salaries = () => {
                         const isExpanded = expandedPopupEmpId === emp.employeeId
 
                         return (
-                          <>
-                            <TableRow
-                              key={index}
-                              className="hover:bg-amber-50/50"
-                            >
+                          <React.Fragment key={emp.employeeId}>
+                            {/* Main Row */}
+                            <TableRow className="hover:bg-amber-50/50">
                               <TableCell className="w-10 pr-0">
                                 {empComponents.length > 0 && (
                                   <button
@@ -822,34 +822,37 @@ const Salaries = () => {
                                   </button>
                                 )}
                               </TableCell>
+
                               <TableCell className="text-gray-500">
                                 {index + 1}
                               </TableCell>
+
                               <TableCell className="font-medium">
                                 {emp.fullName}
                               </TableCell>
+
                               <TableCell>
                                 {basicSalary.toLocaleString()}
                               </TableCell>
+
                               <TableCell>
                                 {grossSalary.toLocaleString()}
                               </TableCell>
+
                               <TableCell className="font-semibold text-green-700">
                                 {netSalary.toLocaleString()}
                               </TableCell>
                             </TableRow>
 
-                            {/* Accordion row for popup */}
+                            {/* Expanded Row */}
                             {isExpanded && (
-                              <TableRow
-                                key={`popup-acc-${index}`}
-                                className="bg-amber-50/40"
-                              >
+                              <TableRow className="bg-amber-50/40">
                                 <TableCell colSpan={6} className="py-0 px-0">
                                   <div className="pl-12 pr-4 py-3 border-t border-amber-100">
                                     <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">
                                       Other salary components
                                     </p>
+
                                     <Table className="border">
                                       <TableHeader>
                                         <TableRow className="bg-white">
@@ -863,105 +866,108 @@ const Salaries = () => {
                                             Type
                                           </TableHead>
                                           <TableHead className="text-xs">
-                                            status
+                                            Status
                                           </TableHead>
                                           <TableHead className="text-xs text-right">
                                             Amount
                                           </TableHead>
                                         </TableRow>
                                       </TableHeader>
+
                                       <TableBody>
-                                        {empComponents.map((c, idx) => {
-                                          // isSkipped: deduction that is authorized AND isLoneFee !== 1
-                                          const isSkipped =
-                                            c.componentType === 'Deduction' &&
-                                            c.isAuthorized === 1 &&
-                                            c.isLoneFee !== 1 &&
-                                            c.isSkipped === 1
-                                          return (
-                                            <TableRow
-                                              key={idx}
-                                              className={cn(
-                                                'bg-white',
-                                                isSkipped && 'opacity-50'
-                                              )}
-                                            >
-                                              <TableCell className="text-gray-500 text-sm">
-                                                {idx + 1}
-                                              </TableCell>
-                                              <TableCell className="font-medium text-sm">
-                                                {c.componentName}
-                                              </TableCell>
-                                              <TableCell>
-                                                <span
-                                                  className={cn(
-                                                    'px-2 py-0.5 rounded-full text-xs font-semibold',
-                                                    c.componentType ===
-                                                      'Allowance'
-                                                      ? 'bg-green-100 text-green-700'
-                                                      : 'bg-red-100 text-red-700'
-                                                  )}
-                                                >
-                                                  {c.componentType}
-                                                </span>
-                                              </TableCell>
-                                              <TableCell>
-                                                {(() => {
-                                                  const isSkippedFinal =
-                                                    c.isAuthorized === 1 &&
-                                                    c.isSkipped === 1
-                                                  const isAuthorizedFinal =
-                                                    c.isAuthorized === 1 &&
-                                                    c.isSkipped === 0
+                                        {empComponents.map(
+                                          (c: any, idx: number) => {
+                                            const isSkipped =
+                                              c.componentType === 'Deduction' &&
+                                              c.isAuthorized === 1 &&
+                                              c.isLoneFee !== 1 &&
+                                              c.isSkipped === 1
 
-                                                  if (isSkippedFinal) {
-                                                    return (
-                                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                                                        <XCircle className="h-3 w-3" />{' '}
-                                                        Skipped
-                                                      </span>
-                                                    )
-                                                  }
+                                            const isSkippedFinal =
+                                              c.isAuthorized === 1 &&
+                                              c.isSkipped === 1
 
-                                                  if (isAuthorizedFinal) {
-                                                    return (
-                                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
-                                                        <CheckCircle className="h-3 w-3" />{' '}
-                                                        Authorized
-                                                      </span>
-                                                    )
-                                                  }
+                                            const isAuthorizedFinal =
+                                              c.isAuthorized === 1 &&
+                                              c.isSkipped === 0
 
-                                                  return (
+                                            return (
+                                              <TableRow
+                                                key={
+                                                  c.id ??
+                                                  `${emp.employeeId}-${idx}`
+                                                }
+                                                className={cn(
+                                                  'bg-white',
+                                                  isSkipped && 'opacity-50'
+                                                )}
+                                              >
+                                                <TableCell className="text-gray-500 text-sm">
+                                                  {idx + 1}
+                                                </TableCell>
+
+                                                <TableCell className="font-medium text-sm">
+                                                  {c.componentName}
+                                                </TableCell>
+
+                                                <TableCell>
+                                                  <span
+                                                    className={cn(
+                                                      'px-2 py-0.5 rounded-full text-xs font-semibold',
+                                                      c.componentType ===
+                                                        'Allowance'
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : 'bg-red-100 text-red-700'
+                                                    )}
+                                                  >
+                                                    {c.componentType}
+                                                  </span>
+                                                </TableCell>
+
+                                                <TableCell>
+                                                  {isSkippedFinal ? (
+                                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                                      <XCircle className="h-3 w-3" />{' '}
+                                                      Skipped
+                                                    </span>
+                                                  ) : isAuthorizedFinal ? (
+                                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
+                                                      <CheckCircle className="h-3 w-3" />{' '}
+                                                      Authorized
+                                                    </span>
+                                                  ) : (
                                                     <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
                                                       <XCircle className="h-3 w-3" />{' '}
                                                       Unauthorized
                                                     </span>
-                                                  )
-                                                })()}
-                                              </TableCell>
-                                              <TableCell className="text-right font-medium text-sm">
-                                                <span
-                                                  className={cn(
-                                                    c.componentType ===
-                                                      'Allowance'
-                                                      ? 'text-green-600'
-                                                      : 'text-red-600',
-                                                    isSkipped && 'line-through'
                                                   )}
-                                                >
-                                                  {c.componentType ===
-                                                  'Allowance'
-                                                    ? '+'
-                                                    : '-'}
-                                                  {c.amount.toLocaleString()}
-                                                </span>
-                                              </TableCell>
-                                            </TableRow>
-                                          )
-                                        })}
+                                                </TableCell>
+
+                                                <TableCell className="text-right font-medium text-sm">
+                                                  <span
+                                                    className={cn(
+                                                      c.componentType ===
+                                                        'Allowance'
+                                                        ? 'text-green-600'
+                                                        : 'text-red-600',
+                                                      isSkipped &&
+                                                        'line-through'
+                                                    )}
+                                                  >
+                                                    {c.componentType ===
+                                                    'Allowance'
+                                                      ? '+'
+                                                      : '-'}
+                                                    {c.amount.toLocaleString()}
+                                                  </span>
+                                                </TableCell>
+                                              </TableRow>
+                                            )
+                                          }
+                                        )}
                                       </TableBody>
                                     </Table>
+
                                     <div className="flex gap-6 mt-2 pt-2 border-t border-amber-100 text-sm">
                                       <span className="text-green-700 font-medium">
                                         Total Allowances: +
@@ -976,7 +982,7 @@ const Salaries = () => {
                                 </TableCell>
                               </TableRow>
                             )}
-                          </>
+                          </React.Fragment>
                         )
                       })}
                   </TableBody>
