@@ -502,7 +502,7 @@ const EmployeeAttendances = () => {
                       <TableHead>Late In (mins)</TableHead>
                       <TableHead>Early Out (mins)</TableHead>
                       <TableHead>Absent</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
+                      {/* <TableHead className="text-right">Action</TableHead> */}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -562,7 +562,12 @@ const EmployeeAttendances = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          {attendance.isAbsent ? (
+                          {attendance.isAbsent === 1 &&
+                          attendance.isLeave === 1 ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
+                              Leave
+                            </span>
+                          ) : attendance.isAbsent === 1 ? (
                             <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
                               <UserX className="h-3 w-3" /> Absent
                             </span>
@@ -572,7 +577,7 @@ const EmployeeAttendances = () => {
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right">
+                        {/* <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
                               variant="ghost"
@@ -596,7 +601,7 @@ const EmployeeAttendances = () => {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                        </TableCell>
+                        </TableCell> */}
                       </TableRow>
                     ))}
                   </TableBody>

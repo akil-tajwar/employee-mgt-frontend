@@ -39,8 +39,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   Search,
-  Edit2,
-  Trash2,
   Calendar,
   Users,
   BadgeDollarSign,
@@ -108,7 +106,8 @@ const isDeductionCounted = (
   i: GetEmployeeOtherSalaryComponentType
 ): boolean => {
   if (i.componentType !== 'Deduction') return false
-  if (i.otherSalaryComponentId === 6) return true
+  if (i.isSkipped === 1) return false // ← add this line
+  if (i.isLoneFee === 1) return true
   return i.isAuthorized === 0
 }
 
@@ -481,9 +480,9 @@ const EmployeeOtherSalaryComponents = () => {
                                 <TableHead>Salary Year</TableHead>
                                 <TableHead>Amount</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead className="text-right">
+                                {/* <TableHead className="text-right">
                                   Action
-                                </TableHead>
+                                </TableHead> */}
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -492,7 +491,8 @@ const EmployeeOtherSalaryComponents = () => {
                                 const isSkipped =
                                   item.componentType === 'Deduction' &&
                                   item.isAuthorized === 1 &&
-                                  item.otherSalaryComponentId !== 6
+                                  item.isLoneFee !== 1 &&
+                                  item.isSkipped === 1
 
                                 return (
                                   <TableRow
@@ -540,7 +540,12 @@ const EmployeeOtherSalaryComponents = () => {
                                       </span>
                                     </TableCell>
                                     <TableCell>
-                                      {item.isAuthorized ? (
+                                      {item.isSkipped ? (
+                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                          <XCircle className="h-3 w-3" />{' '}
+                                          Skipped
+                                        </span>
+                                      ) : item.isAuthorized ? (
                                         <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
                                           <CheckCircle className="h-3 w-3" />{' '}
                                           Authorized
@@ -552,7 +557,7 @@ const EmployeeOtherSalaryComponents = () => {
                                         </span>
                                       )}
                                     </TableCell>
-                                    <TableCell className="text-right">
+                                    {/* <TableCell className="text-right">
                                       <div className="flex justify-end gap-2">
                                         <Button
                                           variant="ghost"
@@ -576,7 +581,7 @@ const EmployeeOtherSalaryComponents = () => {
                                           <Trash2 className="h-4 w-4" />
                                         </Button>
                                       </div>
-                                    </TableCell>
+                                    </TableCell> */}
                                   </TableRow>
                                 )
                               })}

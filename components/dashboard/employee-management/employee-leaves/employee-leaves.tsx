@@ -332,7 +332,7 @@ const EmployeeLeaves = () => {
               >
                 No. of Days <ArrowUpDown className="ml-2 h-4 w-4 inline" />
               </TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              {/* <TableHead className="text-right">Action</TableHead> */}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -375,7 +375,7 @@ const EmployeeLeaves = () => {
                   <TableCell>{leave.startDate}</TableCell>
                   <TableCell>{leave.endDate}</TableCell>
                   <TableCell>{leave.noOfDays}</TableCell>
-                  <TableCell className="text-right">
+                  {/* <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="ghost"
@@ -397,7 +397,7 @@ const EmployeeLeaves = () => {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  </TableCell>
+                  </TableCell> */}
                 </TableRow>
               ))
             )}
