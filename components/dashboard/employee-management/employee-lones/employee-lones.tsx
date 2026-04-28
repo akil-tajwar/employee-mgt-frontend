@@ -1,6 +1,6 @@
 'use client'
 
-import type React from 'react'
+import React from 'react'
 import { useCallback, useEffect, useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -101,7 +101,10 @@ const EmployeeLones = () => {
   const { data: employees } = useGetAllEmployees()
   const { data: employeeOtherSalaryComponents } =
     useGetEmployeeOtherSalaryComponents()
-  console.log("🚀 ~ EmployeeLones ~ employeeOtherSalaryComponents:", employeeOtherSalaryComponents)
+  console.log(
+    '🚀 ~ EmployeeLones ~ employeeOtherSalaryComponents:',
+    employeeOtherSalaryComponents
+  )
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -435,25 +438,21 @@ const EmployeeLones = () => {
               </TableRow>
             ) : (
               paginatedLones.map((lone, index) => {
-                const loneInstallments =
-                  loneInstallmentsMap[lone.employeeLoneId ?? -1] ?? []
-                const isExpanded = expandedLoneIds.has(
-                  lone.employeeLoneId ?? -1
-                )
+                const loneId = lone.employeeLoneId ?? -1
+                const loneInstallments = loneInstallmentsMap[loneId] ?? []
+                const isExpanded = expandedLoneIds.has(loneId)
 
                 return (
-                  <>
+                  <React.Fragment key={loneId}>
                     {/* Main lone row */}
-                    <TableRow key={index}>
+                    <TableRow>
                       <TableCell className="w-8">
                         <Button
                           variant="ghost"
                           size="sm"
                           className="p-0 h-6 w-6"
                           disabled={loneInstallments.length === 0}
-                          onClick={() =>
-                            toggleAccordion(lone.employeeLoneId ?? -1)
-                          }
+                          onClick={() => toggleAccordion(loneId)}
                           title={
                             loneInstallments.length === 0
                               ? 'No installments'
@@ -475,9 +474,11 @@ const EmployeeLones = () => {
                           )}
                         </Button>
                       </TableCell>
+
                       <TableCell>
                         {(currentPage - 1) * lonesPerPage + index + 1}
                       </TableCell>
+
                       <TableCell>
                         <div className="flex flex-col gap-0.5">
                           <span className="font-medium">
@@ -491,27 +492,21 @@ const EmployeeLones = () => {
                           </span>
                         </div>
                       </TableCell>
+
                       <TableCell>{lone.employeeLoneName}</TableCell>
                       <TableCell>{lone.loneDate}</TableCell>
                       <TableCell>{lone.amount}</TableCell>
                       <TableCell>{lone.perMonth}</TableCell>
                       <TableCell>{lone.description}</TableCell>
+
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          {/* <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-amber-600 hover:text-amber-700"
-                            onClick={() => handleEditClick(lone)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button> */}
                           <Button
                             variant="ghost"
                             size="sm"
                             className="text-red-600 hover:text-red-700"
                             onClick={() => {
-                              setDeletingLoneId(lone?.employeeLoneId ?? null)
+                              setDeletingLoneId(lone.employeeLoneId ?? null)
                               setIsDeleteDialogOpen(true)
                             }}
                           >
@@ -523,15 +518,13 @@ const EmployeeLones = () => {
 
                     {/* Accordion: installments sub-table */}
                     {isExpanded && loneInstallments.length > 0 && (
-                      <TableRow
-                        key={`accordion-${index}`}
-                        className="bg-amber-50/60"
-                      >
+                      <TableRow className="bg-amber-50/60">
                         <TableCell colSpan={9} className="p-0">
                           <div className="px-8 py-3">
                             <p className="text-xs font-semibold text-amber-700 mb-2 uppercase tracking-wide">
                               Installments for {lone.employeeLoneName}
                             </p>
+
                             <Table>
                               <TableHeader>
                                 <TableRow className="bg-amber-100/70">
@@ -564,6 +557,7 @@ const EmployeeLones = () => {
                                   </TableHead>
                                 </TableRow>
                               </TableHeader>
+
                               <TableBody>
                                 {loneInstallments.map((inst, instIdx) => {
                                   const alreadySkipped = !!inst.isSkipped
@@ -573,26 +567,34 @@ const EmployeeLones = () => {
                                       inst.salaryYear,
                                       inst.salaryMonth
                                     )
+
                                   return (
                                     <TableRow
-                                      key={instIdx}
-                                      className={`text-sm ${alreadySkipped ? 'opacity-60' : ''}`}
+                                      key={inst.employeeOtherSalaryComponentId}
+                                      className={`text-sm ${
+                                        alreadySkipped ? 'opacity-60' : ''
+                                      }`}
                                     >
                                       <TableCell className="py-2 text-xs">
                                         {instIdx + 1}
                                       </TableCell>
+
                                       <TableCell className="py-2 text-xs">
                                         {inst.componentName}
                                       </TableCell>
+
                                       <TableCell className="py-2 text-xs">
                                         {inst.salaryMonth}
                                       </TableCell>
+
                                       <TableCell className="py-2 text-xs">
                                         {inst.salaryYear}
                                       </TableCell>
+
                                       <TableCell className="py-2 text-xs">
                                         {inst.amount}
                                       </TableCell>
+
                                       <TableCell className="py-2 text-xs">
                                         <span
                                           className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -604,6 +606,7 @@ const EmployeeLones = () => {
                                           {inst.componentType}
                                         </span>
                                       </TableCell>
+
                                       <TableCell className="py-2 text-xs">
                                         <span
                                           className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -615,6 +618,7 @@ const EmployeeLones = () => {
                                           {inst.isAuthorized ? 'Yes' : 'No'}
                                         </span>
                                       </TableCell>
+
                                       <TableCell className="py-2 text-xs">
                                         <span
                                           className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -628,6 +632,7 @@ const EmployeeLones = () => {
                                             : 'Active'}
                                         </span>
                                       </TableCell>
+
                                       <TableCell className="py-2 text-xs text-right">
                                         <Button
                                           variant="ghost"
@@ -640,13 +645,6 @@ const EmployeeLones = () => {
                                           disabled={!canSkip || alreadySkipped}
                                           onClick={() =>
                                             canSkip && handleSkipClick(inst)
-                                          }
-                                          title={
-                                            alreadySkipped
-                                              ? 'Already skipped'
-                                              : canSkip
-                                                ? 'Skip this installment'
-                                                : 'Cannot skip past installments'
                                           }
                                         >
                                           <SkipForward className="h-3.5 w-3.5 mr-1" />
@@ -662,7 +660,7 @@ const EmployeeLones = () => {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </React.Fragment>
                 )
               })
             )}
