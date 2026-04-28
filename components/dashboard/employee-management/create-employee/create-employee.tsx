@@ -35,7 +35,7 @@ import { formatTime } from '@/utils/conversions'
 // ── Static column definitions ─────────────────────────────────────────────────
 const STATIC_COLUMNS = [
   { header: 'Full Name', key: 'fullName', width: 24, required: true }, // A 1
-  { header: 'Email', key: 'email', width: 28, required: true }, // B 2
+  { header: 'Email', key: 'email', width: 28, required: false }, // B 2
   { header: 'Official Phone', key: 'officialPhone', width: 18, required: true }, // C 3
   {
     header: 'Personal Phone',
@@ -236,7 +236,6 @@ const CreateEmployee = () => {
     setError(null)
 
     if (!formData.fullName.trim()) return setError('Please enter full name')
-    if (!formData.email.trim()) return setError('Please enter email')
     if (!formData.officialPhone.trim())
       return setError('Please enter official phone')
     if (!formData.presentAddress.trim())
@@ -919,16 +918,13 @@ const CreateEmployee = () => {
           <h3 className="text-md font-semibold mb-4">Contact Info</h3>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="email">
-                Email <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                required
               />
             </div>
             <div className="space-y-2">
