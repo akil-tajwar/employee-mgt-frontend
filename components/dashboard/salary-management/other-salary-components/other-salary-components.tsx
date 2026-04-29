@@ -58,7 +58,10 @@ const OtherSalaryComponents = () => {
   const [userData] = useAtom(userDataAtom)
 
   const { data: otherSalaryComponents } = useGetOtherSalaryComponents()
-  console.log("🚀 ~ OtherSalaryComponents ~ otherSalaryComponents:", otherSalaryComponents)
+  console.log(
+    '🚀 ~ OtherSalaryComponents ~ otherSalaryComponents:',
+    otherSalaryComponents
+  )
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -126,7 +129,8 @@ const OtherSalaryComponents = () => {
     return (
       otherSalaryComponents?.data?.some(
         (c) =>
-          c.isLateEarlyOutFee === 1 && c.otherSalaryComponentId !== editingComponentId
+          c.isLateEarlyOutFee === 1 &&
+          c.otherSalaryComponentId !== editingComponentId
       ) ?? false
     )
   }, [otherSalaryComponents?.data, editingComponentId])
@@ -151,7 +155,11 @@ const OtherSalaryComponents = () => {
       isAbsentFee:
         field === 'isAbsentFee' ? (checked ? 1 : 0) : prev.isAbsentFee,
       isLateEarlyOutFee:
-        field === 'isisLateEarlyOutFee' ? (checked ? 1 : 0) : prev.isLateEarlyOutFee,
+        field === 'isisLateEarlyOutFee'
+          ? checked
+            ? 1
+            : 0
+          : prev.isLateEarlyOutFee,
       isLoneFee: field === 'isLoneFee' ? (checked ? 1 : 0) : prev.isLoneFee,
       // Reset amount/forDays to 0 when switching to LoneFee
       ...(field === 'isLoneFee' && checked ? { amount: 0, forDays: 0 } : {}),
@@ -397,8 +405,12 @@ const OtherSalaryComponents = () => {
                   <TableCell className="font-medium">
                     {comp.componentName}
                   </TableCell>
-                  <TableCell className="font-medium">{comp.amount}</TableCell>
-                  <TableCell className="font-medium">{comp.forDays}</TableCell>
+                  <TableCell className="font-medium">
+                    {comp.isLoneFee ? '-' : `${comp.amount}%`}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {comp.isLoneFee ? '-' : comp.forDays}
+                  </TableCell>
                   <TableCell>
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -414,7 +426,7 @@ const OtherSalaryComponents = () => {
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         comp.isAbsentFee === 1
-                           ? 'bg-purple-100 text-purple-800'
+                          ? 'bg-purple-100 text-purple-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}
                     >
@@ -588,9 +600,14 @@ const OtherSalaryComponents = () => {
                   id="isisLateEarlyOutFee"
                   checked={isLateEarlyOutFeehecked}
                   onCheckedChange={(checked) =>
-                    handleCheckboxChange('isisLateEarlyOutFee', checked === true)
+                    handleCheckboxChange(
+                      'isisLateEarlyOutFee',
+                      checked === true
+                    )
                   }
-                  disabled={existingisLateEarlyOutFee && !isLateEarlyOutFeehecked}
+                  disabled={
+                    existingisLateEarlyOutFee && !isLateEarlyOutFeehecked
+                  }
                 />
                 <Label htmlFor="isisLateEarlyOutFee" className="cursor-pointer">
                   Late/Early Out Fee
@@ -623,12 +640,16 @@ const OtherSalaryComponents = () => {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="amount">
-                    Amount <span className="text-red-500">*</span>
+                    Amount (%) <span className="text-red-500">*</span>
                   </Label>
+                  <div className="text-xs text-gray-600 space-y-1 bg-gray-50 p-3 rounded-md border">
+                    <p className="font-medium mb-1">
+                      Percentage of the employee&apos;s basic salary
+                    </p>
+                  </div>
                   <Input
                     id="amount"
                     name="amount"
-                    type="number"
                     value={formData.amount}
                     onChange={handleInputChange}
                   />
@@ -638,12 +659,25 @@ const OtherSalaryComponents = () => {
                   <Label htmlFor="forDays">
                     For Days <span className="text-red-500">*</span>
                   </Label>
+
+                  <div className="text-xs text-gray-600 space-y-1 bg-gray-50 p-3 rounded-md border">
+                    <p className="font-medium mb-1">Frequency setting:</p>
+                    <p>0 → Always add this fee (no skipping)</p>
+                    <p>1 → Add → Skip → Add → Skip (adds every other time)</p>
+                    <p>
+                      2 → Add → Skip → Skip → Add → Skip → Skip (adds every 3rd
+                      time)
+                    </p>
+                  </div>
+
                   <Input
                     id="forDays"
                     name="forDays"
                     type="number"
+                    min="0"
                     value={formData.forDays}
                     onChange={handleInputChange}
+                    placeholder="Enter 0, 1, or 2"
                   />
                 </div>
               </>
