@@ -122,7 +122,7 @@ const EmployeeOtherSalaryComponents = () => {
 
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [groupsPerPage] = useState(5)
+  const [groupsPerPage] = useState(10)
   const [searchTerm, setSearchTerm] = useState('')
 
   const [isPopupOpen, setIsPopupOpen] = useState(false)
@@ -134,6 +134,27 @@ const EmployeeOtherSalaryComponents = () => {
 
   const [formData, setFormData] =
     useState<SalaryComponentFormData>(defaultFormData)
+
+  useEffect(() => {
+    if (formData.employeeId && formData.otherSalaryComponentId) {
+      const employee = employees?.data?.find(
+        (e) => e.employeeId === formData.employeeId
+      )
+      const component = otherSalaryComponents?.data?.find(
+        (c) => c.otherSalaryComponentId === formData.otherSalaryComponentId
+      )
+
+      if (employee?.basicSalary && component?.amount) {
+        const calculatedAmount = (employee.basicSalary * component.amount) / 100
+        setFormData((prev) => ({ ...prev, amount: calculatedAmount }))
+      }
+    }
+  }, [
+    formData.employeeId,
+    formData.otherSalaryComponentId,
+    employees?.data,
+    otherSalaryComponents?.data,
+  ])
 
   const resetForm = useCallback(() => {
     setFormData(defaultFormData)

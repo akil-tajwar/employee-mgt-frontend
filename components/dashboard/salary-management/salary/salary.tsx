@@ -405,12 +405,10 @@ const Salaries = () => {
                           salary.salary.salaryYear
                         )
 
-                        // Allowances: always count
                         const allowanceTotal = empComponents
                           .filter((c) => c.componentType === 'Allowance')
                           .reduce((sum, c) => sum + c.amount, 0)
 
-                        // Deductions: count if isAuthorized !== 1 OR otherSalaryComponentId === 6
                         const deductionTotal = empComponents
                           .filter(
                             (c) =>
@@ -421,11 +419,8 @@ const Salaries = () => {
                           .reduce((sum, c) => sum + c.amount, 0)
 
                         return (
-                          <>
-                            <TableRow
-                              key={index}
-                              className="hover:bg-amber-50/50"
-                            >
+                          <React.Fragment key={salaryId}>
+                            <TableRow className="hover:bg-amber-50/50">
                               <TableCell className="w-10 pr-0">
                                 {empComponents.length > 0 && (
                                   <button
@@ -480,10 +475,7 @@ const Salaries = () => {
 
                             {/* Accordion row for main table */}
                             {isExpanded && (
-                              <TableRow
-                                key={`index`}
-                                className="bg-amber-50/40"
-                              >
+                              <TableRow className="bg-amber-50/40">
                                 <TableCell colSpan={7} className="py-0 px-0">
                                   <div className="pl-14 pr-6 py-4 border-t border-amber-100">
                                     <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">
@@ -513,7 +505,6 @@ const Salaries = () => {
                                       </TableHeader>
                                       <TableBody>
                                         {empComponents.map((c, idx) => {
-                                          // isSkipped: deduction that is authorized AND not component 6
                                           const isSkipped =
                                             c.componentType === 'Deduction' &&
                                             c.isAuthorized === 1 &&
@@ -617,7 +608,7 @@ const Salaries = () => {
                                 </TableCell>
                               </TableRow>
                             )}
-                          </>
+                          </React.Fragment>
                         )
                       }
                     )}

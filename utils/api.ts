@@ -32,6 +32,9 @@ import {
   SignInResponse,
   SignInResponseSchema,
   GetEmployeeLeaveTypeType,
+  GetLoneReportType,
+  GetEmployeeLeaveSummaryType,
+  GetEmployeeAttendanceSummaryType,
 } from '@/utils/type'
 
 export async function signIn(credentials: SignInRequest) {
@@ -828,3 +831,40 @@ export async function getAttendanceReport(
   })
 }
 
+export async function getLoneReport(
+  fromDate: string,
+  toDate: string,
+  token: string
+) {
+  return fetchApi<GetLoneReportType[]>({
+    url: `api/reports/lone-report?fromDate=${fromDate}&toDate=${toDate}`,
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+//dashbaord
+export async function getEmployeeLeaveSummary(token: string) {
+  return fetchApi<GetEmployeeLeaveSummaryType[]>({
+    url: 'api/dashboard/leave-summary',
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+export async function getEmployeeAttendanceSummary(token: string) {
+  return fetchApi<GetEmployeeAttendanceSummaryType[]>({
+    url: 'api/dashboard/attendance-summary',
+    method: 'GET',
+    headers: {
+      Authorization: token,
+      'Content-Type': 'application/json',
+    },
+  })
+}

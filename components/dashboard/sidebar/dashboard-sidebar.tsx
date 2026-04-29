@@ -69,6 +69,10 @@ export function DashboardSidebar() {
           title: 'Office Timing & Weekends',
           href: '/dashboard/setup/office-timing-and-weekends',
         },
+        {
+          title: 'Other Salary Components',
+          href: '/dashboard/setup/other-salary-components',
+        },
       ],
     },
     {
@@ -104,10 +108,6 @@ export function DashboardSidebar() {
       href: '/dashboard/salary-management',
       subItems: [
         {
-          title: 'Other Salary Components',
-          href: '/dashboard/salary-management/other-salary-components',
-        },
-        {
           title: 'Employee Other Salary Components',
           href: '/dashboard/salary-management/employee-other-salary-components',
         },
@@ -129,6 +129,10 @@ export function DashboardSidebar() {
         {
           title: 'Attendance Report',
           href: '/dashboard/report/attendance-report',
+        },
+        {
+          title: 'Lone Report',
+          href: '/dashboard/report/lone-report',
         },
       ],
     },
