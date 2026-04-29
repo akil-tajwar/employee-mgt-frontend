@@ -181,7 +181,9 @@ export const employeeLeaveTypeSchema = z.object({
   employeeId: z.number(),
   leaveTypeId: z.number(),
 })
-export type GetEmployeeLeaveTypeType = z.infer<typeof employeeLeaveTypeSchema> & {
+export type GetEmployeeLeaveTypeType = z.infer<
+  typeof employeeLeaveTypeSchema
+> & {
   leaveTypeName: string
   totalLeaves: number
   employeeName: string
@@ -347,7 +349,7 @@ export const employeeLonesSchema = z.object({
   createdAt: z.number().optional(),
   updatedBy: z.number().optional(),
   updatedAt: z.number().optional(),
-});
+})
 export type CreateEmployeeLoneType = z.infer<typeof employeeLonesSchema>
 export type GetEmployeeLoneType = z.infer<typeof employeeLonesSchema> & {
   employeeName: string
@@ -368,7 +370,7 @@ export const employeeLeaveSchema = z.object({
   createdAt: z.number().optional(),
   updatedBy: z.number().optional(),
   updatedAt: z.number().optional(),
-});
+})
 export type CreateEmployeeLeaveType = z.infer<typeof employeeLeaveSchema>
 export type GetEmployeeLeaveType = z.infer<typeof employeeLeaveSchema> & {
   employeeName: string
@@ -412,3 +414,57 @@ export const loneReportSchema = z.array(
   })
 )
 export type GetLoneReportType = z.infer<typeof loneReportSchema>
+
+export const employeeLeaveSummarySchema = z.array(
+  z.object({
+    employeeDetails: z.object({
+      employeeId: z.number(),
+      empCode: z.string(),
+      fullName: z.string(),
+      designationName: z.string(),
+      departmentName: z.string(),
+      totalLeavesTaken: z.number(),
+    }),
+
+    leaveDetails: z.array(
+      z.object({
+        leaveTypeId: z.number(),
+        leaveTypeName: z.string(),
+        totalLeaves: z.number(),
+        takenLeaves: z.number(),
+        remainingLeaves: z.number(),
+      })
+    ),
+  })
+)
+export type GetEmployeeLeaveSummaryType = z.infer<
+  typeof employeeLeaveSummarySchema
+>
+
+export const employeeAttendanceSummarySchema = z.array(
+  z.object({
+    employeeDetails: z.object({
+      employeeId: z.number(),
+      empCode: z.string(),
+      fullName: z.string(),
+      designationName: z.string(),
+      departmentName: z.string(),
+
+      totalAbsent: z.number(),
+      totalLateInMinutes: z.number(),
+      totalEarlyOutMinutes: z.number(),
+    }),
+
+    attendanceDetails: z.array(
+      z.object({
+        attendanceDate: z.string(),
+        isAbsent: z.number(),
+        lateInMinutes: z.number().nullable(),
+        earlyOutMinutes: z.number().nullable(),
+      })
+    ),
+  })
+)
+export type GetEmployeeAttendanceSummaryType = z.infer<
+  typeof employeeAttendanceSummarySchema
+>

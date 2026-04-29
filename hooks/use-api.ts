@@ -59,7 +59,9 @@ import {
   getAllSalaries,
   getAllWeekends,
   getAttendanceReport,
+  getEmployeeAttendanceSummary,
   getEmployeeById,
+  getEmployeeLeaveSummary,
   getLoneReport,
   getSalaryReport,
   skipLone,
@@ -2068,6 +2070,41 @@ export const useGetLoneReport = (fromDate: string, toDate: string) => {
       return getLoneReport(fromDate, toDate, token)
     },
     enabled: !!token && fromDate.length > 0 && toDate.length > 0,
+    select: (data) => data,
+  })
+}
+
+//dashboard
+export const useGetEmployeeLeaveSummary = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['employeeLeaveSummary'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getEmployeeLeaveSummary(token)
+    },
+    enabled: !!token,
+    select: (data) => data,
+  })
+}
+
+export const useGetEmployeeAttendanceSummary = () => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['employeeAttendanceSummary'],
+    queryFn: () => {
+      if (!token) {
+        throw new Error('Token not found')
+      }
+      return getEmployeeAttendanceSummary(token)
+    },
+    enabled: !!token,
     select: (data) => data,
   })
 }
