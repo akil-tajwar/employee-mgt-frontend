@@ -1,4 +1,4 @@
-import OtherSalaryComponents from '@/components/dashboard/salary-management/other-salary-components/other-salary-components';
+import OtherSalaryComponents from '@/components/dashboard/setup/other-salary-components/other-salary-components';
 import React from 'react';
 
 const OtherSalaryComponentsPage = () => {

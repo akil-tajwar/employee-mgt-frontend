@@ -377,3 +377,38 @@ export type GetEmployeeLeaveType = z.infer<typeof employeeLeaveSchema> & {
   departmentName: string
   leaveTypeName: string
 }
+
+export const loneReportSchema = z.array(
+  z.object({
+    lone: z.object({
+      employeeLoneId: z.number(),
+      employeeLoneName: z.string(),
+      amount: z.number(),
+      perMonth: z.number(),
+      loneDate: z.string(),
+      description: z.string(),
+      employeeId: z.number(),
+      employeeName: z.string().optional(), // only for get
+      empCode: z.string().optional(), // only for get
+      departmentId: z.number(),
+      departmentName: z.string().optional(), // only for get
+      designationId: z.number(),
+      designationName: z.string().optional(), // only for get
+    }),
+
+    installments: z.array(
+      z.object({
+        employeeOtherSalaryComponentId: z.number(),
+        otherSalaryComponentId: z.number(),
+        salaryMonth: z.string(),
+        salaryYear: z.number(),
+        amount: z.number(),
+        isAuthorized: z.number(),
+        isSkipped: z.number(),
+        isSalaryGiven: z.number(),
+        createdAt: z.number(),
+      })
+    ),
+  })
+)
+export type GetLoneReportType = z.infer<typeof loneReportSchema>

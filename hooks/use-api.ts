@@ -60,6 +60,7 @@ import {
   getAllWeekends,
   getAttendanceReport,
   getEmployeeById,
+  getLoneReport,
   getSalaryReport,
   skipLone,
 } from '@/utils/api'
@@ -2050,6 +2051,21 @@ export const useGetAttendanceReport = (fromDate: string, toDate: string) => {
     queryFn: () => {
       if (!token) throw new Error('Token not found')
       return getAttendanceReport(fromDate, toDate, token)
+    },
+    enabled: !!token && fromDate.length > 0 && toDate.length > 0,
+    select: (data) => data,
+  })
+}
+
+export const useGetLoneReport = (fromDate: string, toDate: string) => {
+  const [token] = useAtom(tokenAtom)
+  useInitializeUser()
+
+  return useQuery({
+    queryKey: ['loneReport', fromDate, toDate],
+    queryFn: () => {
+      if (!token) throw new Error('Token not found')
+      return getLoneReport(fromDate, toDate, token)
     },
     enabled: !!token && fromDate.length > 0 && toDate.length > 0,
     select: (data) => data,
